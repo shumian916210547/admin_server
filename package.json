@@ -1,0 +1,19 @@
+{
+  "name": "admin-server",
+  "version": "0.1.0",
+  "private": true,
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "set NODE_ENV=development && nodemon",
+    "server": "set NODE_ENV=production && node app.js"
+  },
+  "dependencies": {
+    "express": "~4.16.1",
+    "express-async-errors": "^3.1.1",
+    "moment": "^2.29.3",
+    "parse": "^3.2.0",
+    "parse-server": "^5.2.0",
+    "pg": "^8.6.0"
+  }
+}
