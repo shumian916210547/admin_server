@@ -71,7 +71,7 @@ app.use("/dashboard", new ParseDashboard({
       "serverURL": "http://localhost:3000/parse",
       "appId": "shumian0511",
       "masterKey": "shumian100329",
-      "appName": "shumian_server"
+      "appName": process.env.npm_package_name
     }
   ]
 }, { allowInsecureHTTP: false }))
@@ -82,7 +82,7 @@ server.listen(3000, () => {
   console.log('服务启动成功 http://localhost:3000');
   app.listen(1337, () => {
     Parse.initialize("shumian0511")
-    Parse.serverURL = "http://localhost:1337/parse"
+    Parse.serverURL = "http://localhost:3000/parse"
   })
   console.log("Current Service Version: " + process.env.npm_package_version);
   connection.connect((err) => {
