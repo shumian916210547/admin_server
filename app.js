@@ -5,6 +5,7 @@ const app = express();
 const http = require("http");
 const connection = require("./pgsql")
 const ParseServer = require('parse-server').ParseServer;
+const ParseDashboard = require('parse-dashboard');
 const router = require("./routes/index")
 const utils = require("./utils")
 const moment = require('moment')
@@ -57,9 +58,32 @@ app.use((err, req, res, next) => {
   res.json(new ResponseJson().setCode(err.code).setMessage(err.msg || err));
 })
 
+app.use('/parse', new ParseServer({
+  databaseURI: 'postgres://114.215.210.204:5432/postgres',
+  cloud: './cloud.js',
+  appId: 'shumian0511',
+  masterKey: 'shumian100329',
+}));
+
+app.use("/dashboard", new ParseDashboard({
+  "apps": [
+    {
+      "serverURL": "http://localhost:3000/parse",
+      "appId": "shumian0511",
+      "masterKey": "shumian100329",
+      "appName": "shumian_server"
+    }
+  ]
+}, { allowInsecureHTTP: false }))
+
 const server = http.createServer(app);
+
 server.listen(3000, () => {
   console.log('服务启动成功 http://localhost:3000');
+  app.listen(1337, () => {
+    Parse.initialize("shumian0511")
+    Parse.serverURL = "http://localhost:1337/parse"
+  })
   console.log("Current Service Version: " + process.env.npm_package_version);
   connection.connect((err) => {
     if (!err) {
@@ -69,17 +93,5 @@ server.listen(3000, () => {
     }
   })
 });
-
-app.use('/parse', new ParseServer({
-  databaseURI: 'postgres://114.215.210.204:5432/postgres',
-  cloud: './app.js',
-  appId: 'shumian0511',
-  masterKey: 'shumian100329',
-}));
-
-app.listen(1337, () => {
-  Parse.initialize("shumian0511")
-  Parse.serverURL = "http://localhost:1337/parse"
-})
 
 module.exports = app;
