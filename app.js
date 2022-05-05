@@ -78,7 +78,7 @@ if (process.env.NODE_ENV == "development") {
 }
 
 if (process.env.NODE_ENV == "production") {
-  serverURL = "http://api.shumian.top/parse";
+  serverURL = "https://api.shumian.top/parse";
 }
 
 app.use(

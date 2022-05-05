@@ -5,8 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "set NODE_ENV=development && nodemon",
-    "server": "set NODE_ENV=production && node app.js"
+    "dev": "set NODE_ENV=development&&nodemon",
+    "server": "set NODE_ENV=production&&node app.js"
   },
   "dependencies": {
     "express": "~4.16.1",
