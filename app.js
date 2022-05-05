@@ -71,6 +71,16 @@ app.use((err, req, res, next) => {
   res.json(new ResponseJson().setCode(err.code).setMessage(err.msg || err));
 });
 
+let serverURL = "http://localhost:3000/parse";
+
+if (process.env.NODE_ENV == "development") {
+  serverURL = "http://localhost:3000/parse";
+}
+
+if (process.env.NODE_ENV == "production") {
+  serverURL = "http://api.shumian.top/parse";
+}
+
 app.use(
   "/parse",
   new ParseServer({
@@ -87,7 +97,7 @@ app.use(
     {
       apps: [
         {
-          serverURL: "http://localhost:3000/parse",
+          serverURL,
           appId: "shumian0511",
           masterKey: "shumian100329",
           appName: process.env.npm_package_name,
@@ -105,7 +115,7 @@ server.listen(3000, () => {
   console.log("服务启动成功 http://localhost:3000");
   app.listen(1337, () => {
     Parse.initialize("shumian0511");
-    Parse.serverURL = "http://localhost:3000/parse";
+    Parse.serverURL = serverURL;
   });
   console.log("Current Service Version: " + process.env.npm_package_version);
   connection.connect((err) => {
@@ -118,7 +128,7 @@ server.listen(3000, () => {
 });
 
 /* https */
-if (process.env.NODE_ENV == "production") {
+/* if (process.env.NODE_ENV == "production") {
   const credentials = {
     key: fs.readFileSync(
       path.join(__dirname, "./ssl/7229702_api.shumian.top.key"),
@@ -134,6 +144,6 @@ if (process.env.NODE_ENV == "production") {
   httpsServer.listen(443, () => {
     console.log("https服务启动成功");
   });
-}
+} */
 
 module.exports = app;
