@@ -53,6 +53,11 @@ app.all("*", (req, res, next) => {
       "Content-Type": "application/json; charset=utf-8",
     });
   }
+
+  if (req.path.indexOf("dashbaord") > -1) {
+    res.setHeader("Content-Type", "text/html;charset=utf-8");
+  }
+
   req.method === "OPTIONS" ? res.status(204).end() : next();
 });
 
