@@ -5,11 +5,11 @@ const router = express.Router();
 
 router.use((req, res, next) => {
   if (req.originalUrl.indexOf("/blog/") > -1) {
-    req.body['companyId'] = 'Eus6CrTr1X'
+    req.body['companyId'] = 'QbN9Lq7W9v'
   }
 
   if (req.originalUrl.indexOf("/admin/") > -1) {
-    req.body['companyId'] = 'BCBGElSE3X'
+    req.body['companyId'] = 'D9BPrTCZA1'
   }
   next()
 })

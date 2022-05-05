@@ -11,13 +11,13 @@ const articleController = {
       };
     }
 
-    const Article = Parse.Object.extend("article");
+    const Article = Parse.Object.extend("Article");
     const article = new Article();
     article.set("title", title);
     article.set("content", content);
     article.set("company", {
       __type: "Pointer",
-      className: "company",
+      className: "Company",
       objectId: companyId,
     });
 
@@ -36,7 +36,7 @@ const articleController = {
   findAll: async (req, res) => {
     const { companyId } = req.body
     const { pageSize, pageNum } = req.query;
-    const article = new Parse.Query("article");
+    const article = new Parse.Query("Article");
     article.equalTo("company", companyId)
     const total = await article.count();
     article.limit(Number(pageSize) || 10);
@@ -51,7 +51,7 @@ const articleController = {
   },
   findHotArticle: async (req, res) => {
     const { companyId } = req.body
-    const article = new Parse.Query("article");
+    const article = new Parse.Query("Article");
     article.equalTo("company", companyId)
     article.descending("hits");
     article.limit(10);
@@ -71,7 +71,7 @@ const articleController = {
         msg: "articleId不能为空",
       };
     }
-    const article = new Parse.Query("article");
+    const article = new Parse.Query("Article");
     article.equalTo("objectId", articleId);
     const r = await article.first();
     if (r && r.id) {
@@ -95,7 +95,7 @@ const articleController = {
         msg: "articleId不能为空",
       };
     }
-    const article = new Parse.Query("article");
+    const article = new Parse.Query("Article");
     article.equalTo("objectId", articleId);
     const r = await article.first();
     if (r && r.id) {
