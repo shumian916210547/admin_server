@@ -54,7 +54,7 @@ app.all("*", (req, res, next) => {
     });
   }
 
-  if (req.path.indexOf("dashbaord") > -1) {
+  if (req.path.indexOf("/dashbaord") > -1) {
     res.setHeader("Content-Type", "text/html;charset=utf-8");
   }
 
