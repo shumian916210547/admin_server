@@ -123,7 +123,7 @@ if (process.env.NODE_ENV == "production") {
       path.join(__dirname, "./ssl/7229702_api.shumian.top.key"),
       "utf8"
     ),
-    pem: fs.readFileSync(
+    cert: fs.readFileSync(
       path.join(__dirname, "./ssl/7229702_api.shumian.top.pem"),
       "utf8"
     ),
@@ -131,7 +131,7 @@ if (process.env.NODE_ENV == "production") {
 
   const httpsServer = https.createServer(credentials, app);
   httpsServer.listen(443, () => {
-    console.log("https启动成功");
+    console.log("https服务启动成功");
   });
 }
 
