@@ -34,6 +34,7 @@ app.all("*", (req, res, next) => {
     if (ip.split(",").length > 0) {
       ip = ip.split(",")[0];
     }
+
     console.log("请求路径：" + req.originalUrl, " 耗时：" + deltaTime + "ms");
   };
 
@@ -54,6 +55,13 @@ app.all("*", (req, res, next) => {
     });
   }
 
+  if (
+    process.env.NODE_ENV == "production" &&
+    req.path.indexOf("/dashboard") > -1
+  ) {
+    res.status(404).end();
+  }
+
   req.method === "OPTIONS" ? res.status(204).end() : next();
 });
 
@@ -68,7 +76,11 @@ app.use((err, req, res, next) => {
     " 请求方法：" + req.method
   );
   console.log(err);
-  res.json(new ResponseJson().setCode(err.code).setMessage(err.msg || err));
+  res.json(
+    new ResponseJson()
+      .setCode(err.code)
+      .setMessage(err.msg || err || err.message)
+  );
 });
 
 let serverURL = "http://localhost:3000/parse";

@@ -1,6 +1,6 @@
 const express = require("express");
 const devModuleRouter = express.Router();
-const devModuleController = _require("controller/admin/devModule/index");
+const devModuleController = _require("controller/devModule/index");
 
 /* 模块列表 */
 devModuleRouter.get("/findAll", devModuleController.findAll);

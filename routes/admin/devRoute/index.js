@@ -1,6 +1,6 @@
 const express = require("express");
 const devRouteRouter = express.Router();
-const devRouteController = _require("controller/admin/devRoute/index");
+const devRouteController = _require("controller/devRoute/index");
 
 /* 路由列表 */
 devRouteRouter.get("/findAll", devRouteController.findAll);
