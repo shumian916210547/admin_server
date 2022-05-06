@@ -3,9 +3,6 @@ require("express-async-errors");
 require("./global");
 const app = express();
 const http = require("http");
-const https = require("https");
-const fs = require("fs");
-const path = require("path");
 const connection = require("./pgsql");
 const ParseServer = require("parse-server").ParseServer;
 const ParseDashboard = require("parse-dashboard");
@@ -138,24 +135,5 @@ server.listen(3000, () => {
     }
   });
 });
-
-/* https */
-/* if (process.env.NODE_ENV == "production") {
-  const credentials = {
-    key: fs.readFileSync(
-      path.join(__dirname, "./ssl/7229702_api.shumian.top.key"),
-      "utf8"
-    ),
-    cert: fs.readFileSync(
-      path.join(__dirname, "./ssl/7229702_api.shumian.top.pem"),
-      "utf8"
-    ),
-  };
-
-  const httpsServer = https.createServer(credentials, app);
-  httpsServer.listen(443, () => {
-    console.log("https服务启动成功");
-  });
-} */
 
 module.exports = app;
