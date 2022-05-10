@@ -1,6 +1,7 @@
 const ResponseJson = _require("ResponseJson");
 const Query = _require("query");
 const Parse = require("parse/node");
+const moment = require("moment");
 const devModuleController = {
   findAll: async (req, res) => {
     const { companyId } = req.body;
@@ -12,7 +13,13 @@ const devModuleController = {
     devModule.include("router");
     devModule.limit(Number(pageSize) || 10);
     devModule.skip(Number(pageSize * (pageNum - 1)) || 0);
-    const result = await devModule.find();
+    const result = (await devModule.find()).map((module) => {
+      module = module.toJSON();
+      module.createdAt = moment(new Date(module.createdAt)).format(
+        "YYYY-MM-DD HH:mm:ss"
+      );
+      return module;
+    });
     res.json(
       new ResponseJson()
         .setCode(200)

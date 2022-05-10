@@ -5,6 +5,9 @@ const devRouteController = _require("controller/devRoute/index");
 /* 路由列表 */
 devRouteRouter.get("/findAll", devRouteController.findAll);
 
+/* 所有路由列表 */
+devRouteRouter.get("/findList", devRouteController.findList);
+
 /* 查询路由 */
 devRouteRouter.get("/findById", devRouteController.findById);
 

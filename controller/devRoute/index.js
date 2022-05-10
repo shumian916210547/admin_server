@@ -1,5 +1,6 @@
 const ResponseJson = _require("ResponseJson");
 const Query = _require("query");
+const { async } = require("parse/lib/browser/Storage");
 const Parse = require("parse/node");
 const devRouteController = {
   findAll: async (req, res) => {
@@ -7,7 +8,6 @@ const devRouteController = {
     const devRoute = new Parse.Query("DevRoute");
     devRoute.equalTo("isDelete", false);
     const total = await devRoute.count();
-    devRoute.include("router");
     devRoute.limit(Number(pageSize) || 10);
     devRoute.skip(Number(pageSize * (pageNum - 1)) || 0);
     const result = await devRoute.find();
@@ -16,6 +16,14 @@ const devRouteController = {
         .setCode(200)
         .setMessage("success")
         .setData({ count: total, curPage: pageNum || 1, list: result })
+    );
+  },
+  findList: async (req, res) => {
+    const devRoute = new Parse.Query("DevRoute");
+    devRoute.equalTo("isDelete", false);
+    const result = await devRoute.find();
+    res.json(
+      new ResponseJson().setCode(200).setMessage("success").setData(result)
     );
   },
   findById: async (req, res) => {
