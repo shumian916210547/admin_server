@@ -5,6 +5,9 @@ const devModuleController = _require("controller/devModule/index");
 /* 模块列表 */
 devModuleRouter.get("/findAll", devModuleController.findAll);
 
+/* 所有模块列表 */
+devModuleRouter.get("/findList", devModuleController.findList);
+
 /* 查询模块 */
 devModuleRouter.get("/findById", devModuleController.findById);
 

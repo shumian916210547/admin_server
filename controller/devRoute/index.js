@@ -1,6 +1,6 @@
 const ResponseJson = _require("ResponseJson");
 const Query = _require("query");
-const { async } = require("parse/lib/browser/Storage");
+const moment = require("moment");
 const Parse = require("parse/node");
 const devRouteController = {
   findAll: async (req, res) => {
@@ -10,7 +10,13 @@ const devRouteController = {
     const total = await devRoute.count();
     devRoute.limit(Number(pageSize) || 10);
     devRoute.skip(Number(pageSize * (pageNum - 1)) || 0);
-    const result = await devRoute.find();
+    const result = (await devRoute.find()).map((route) => {
+      route = route.toJSON();
+      route.createdAt = moment(new Date(route.createdAt)).format(
+        "YYYY-MM-DD HH:mm:ss"
+      );
+      return route;
+    });
     res.json(
       new ResponseJson()
         .setCode(200)
@@ -21,7 +27,12 @@ const devRouteController = {
   findList: async (req, res) => {
     const devRoute = new Parse.Query("DevRoute");
     devRoute.equalTo("isDelete", false);
-    const result = await devRoute.find();
+    const result = (await devRoute.find()).map((route) => {
+      return {
+        value: route.id,
+        label: route.get("name"),
+      };
+    });
     res.json(
       new ResponseJson().setCode(200).setMessage("success").setData(result)
     );
