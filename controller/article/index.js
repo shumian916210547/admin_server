@@ -15,11 +15,6 @@ const articleController = {
     const article = new Article();
     article.set("title", title);
     article.set("content", content);
-    article.set("company", {
-      __type: "Pointer",
-      className: "Company",
-      objectId: companyId,
-    });
 
     const result = await article.save();
     if (result && result.id) {
@@ -34,10 +29,9 @@ const articleController = {
     }
   },
   findAll: async (req, res) => {
-    const { companyId } = req.body
+    const { companyId } = req.body;
     const { pageSize, pageNum } = req.query;
     const article = new Parse.Query("Article");
-    article.equalTo("company", companyId)
     const total = await article.count();
     article.limit(Number(pageSize) || 10);
     article.skip(Number(pageSize * (pageNum - 1)) || 0);
@@ -50,17 +44,13 @@ const articleController = {
     );
   },
   findHotArticle: async (req, res) => {
-    const { companyId } = req.body
+    const { companyId } = req.body;
     const article = new Parse.Query("Article");
-    article.equalTo("company", companyId)
     article.descending("hits");
     article.limit(10);
     const result = await article.find();
     res.json(
-      new ResponseJson()
-        .setCode(200)
-        .setMessage("success")
-        .setData(result)
+      new ResponseJson().setCode(200).setMessage("success").setData(result)
     );
   },
   updateHot: async (req, res) => {

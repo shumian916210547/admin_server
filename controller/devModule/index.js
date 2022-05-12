@@ -4,13 +4,11 @@ const Parse = require("parse/node");
 const moment = require("moment");
 const devModuleController = {
   findAll: async (req, res) => {
-    const { companyId } = req.body;
     const { pageSize, pageNum, name = "" } = req.query;
     const devModule = new Parse.Query("DevModule");
     if (name && name.length) {
       devModule.contains("name", name);
     }
-    devModule.equalTo("company", companyId);
     devModule.equalTo("isDelete", false);
     const total = await devModule.count();
     devModule.limit(Number(pageSize) || 10);
@@ -59,11 +57,11 @@ const devModuleController = {
     );
   },
   insertDevModule: async (req, res) => {
-    const { name, companyId, router } = req.body;
-    if (!name) {
+    const { name, router, meta } = req.body;
+    if (!name || !meta.companyId) {
       throw {
         code: 401,
-        msg: " name不能为空",
+        msg: " name,meta.companyId不能为空",
       };
     }
     let routes = router?.map((route) => {
@@ -77,12 +75,8 @@ const devModuleController = {
     const devModule = new DevModule();
     devModule.set("name", name);
     devModule.set("isDelete", false);
+    devModule.set("meta", meta);
     devModule.set("router", routes || []);
-    devModule.set("company", {
-      __type: "Pointer",
-      className: "Company",
-      objectId: companyId,
-    });
     const result = await devModule.save();
     if (result && result.id) {
       res.json(
@@ -96,11 +90,11 @@ const devModuleController = {
     }
   },
   updateById: async (req, res) => {
-    const { objectId, name, router } = req.body;
-    if (!objectId) {
+    const { objectId, name, router, meta } = req.body;
+    if (!objectId || !name || !meta.companyId) {
       throw {
         code: 401,
-        msg: "objectId不能为空",
+        msg: "objectId,name,meta.companyId不能为空",
       };
     }
     const devModule = new Parse.Query("DevModule");
@@ -116,6 +110,7 @@ const devModuleController = {
       });
       module.set("name", name || module.get("name"));
       module.set("router", routes || module.get("router"));
+      module.set("meta", meta || module.get("meta"));
       const result = await module.save();
       if (result && result.id) {
         res.json(
