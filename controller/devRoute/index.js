@@ -4,8 +4,12 @@ const moment = require("moment");
 const Parse = require("parse/node");
 const devRouteController = {
   findAll: async (req, res) => {
-    const { pageSize, pageNum } = req.query;
+    const { pageSize, pageNum, name = "" } = req.query;
     const devRoute = new Parse.Query("DevRoute");
+    if (name && name.length) {
+      devRoute.contains("name", name);
+    }
+    console.log(name);
     devRoute.equalTo("isDelete", false);
     const total = await devRoute.count();
     devRoute.limit(Number(pageSize) || 10);

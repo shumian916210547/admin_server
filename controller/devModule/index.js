@@ -5,8 +5,11 @@ const moment = require("moment");
 const devModuleController = {
   findAll: async (req, res) => {
     const { companyId } = req.body;
-    const { pageSize, pageNum } = req.query;
+    const { pageSize, pageNum, name = "" } = req.query;
     const devModule = new Parse.Query("DevModule");
+    if (name && name.length) {
+      devModule.contains("name", name);
+    }
     devModule.equalTo("company", companyId);
     devModule.equalTo("isDelete", false);
     const total = await devModule.count();
