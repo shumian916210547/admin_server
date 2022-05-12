@@ -59,7 +59,7 @@ const devRouteController = {
     );
   },
   insertDevRoute: async (req, res) => {
-    const { pagePath, name, path } = req.body;
+    const { pagePath, name, path, option } = req.body;
     if (!pagePath || !name || !path) {
       throw {
         msg: "pagePath, name, path不能为空",
@@ -73,6 +73,7 @@ const devRouteController = {
     devRoute.set("path", path);
     devRoute.set("pagePath", pagePath);
     devRoute.set("isDelete", false);
+    devRoute.set("option", option);
     const result = await devRoute.save();
     if (result && result.id) {
       res.json(
@@ -86,7 +87,7 @@ const devRouteController = {
     }
   },
   updateById: async (req, res) => {
-    const { objectId, pagePath, name, path } = req.body;
+    const { objectId, pagePath, name, path, option } = req.body;
     if (!objectId) {
       throw {
         code: 401,
@@ -101,6 +102,7 @@ const devRouteController = {
       route.set("pagePath", pagePath || route.get("pagePath"));
       route.set("name", name || route.get("name"));
       route.set("path", path || route.get("path"));
+      route.set("option", option || route.get("route"));
       const result = await route.save();
       if (result && result.id) {
         res.json(
