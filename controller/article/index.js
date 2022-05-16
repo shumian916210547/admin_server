@@ -33,6 +33,7 @@ const articleController = {
     const { pageSize, pageNum } = req.query;
     const article = new Parse.Query("Article");
     const total = await article.count();
+    article.ascending("createdAt");
     article.limit(Number(pageSize) || 10);
     article.skip(Number(pageSize * (pageNum - 1)) || 0);
     const result = await article.find();

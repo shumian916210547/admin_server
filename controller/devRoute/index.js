@@ -9,9 +9,10 @@ const devRouteController = {
     if (name && name.length) {
       devRoute.contains("name", name);
     }
-    console.log(name);
+
     devRoute.equalTo("isDelete", false);
     const total = await devRoute.count();
+    devRoute.ascending("createdAt");
     devRoute.limit(Number(pageSize) || 10);
     devRoute.skip(Number(pageSize * (pageNum - 1)) || 0);
     const result = (await devRoute.find()).map((route) => {
@@ -30,6 +31,7 @@ const devRouteController = {
   },
   findList: async (req, res) => {
     const devRoute = new Parse.Query("DevRoute");
+    devRoute.ascending("createdAt");
     devRoute.equalTo("isDelete", false);
     const result = (await devRoute.find()).map((route) => {
       return {

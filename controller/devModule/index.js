@@ -11,6 +11,7 @@ const devModuleController = {
     }
     devModule.equalTo("isDelete", false);
     const total = await devModule.count();
+    devModule.ascending("createdAt");
     devModule.limit(Number(pageSize) || 10);
     devModule.skip(Number(pageSize * (pageNum - 1)) || 0);
     const result = (await devModule.find()).map((module) => {
@@ -29,7 +30,11 @@ const devModuleController = {
   },
   findList: async (req, res) => {
     const devModule = new Parse.Query("DevModule");
+    devModule.descending("createdAt");
     devModule.equalTo("isDelete", false);
+    const innerQuery = new Parse.Query("DevRoute");
+    innerQuery.equalTo("isDelete", false);
+    devModule.matchesQuery("router", innerQuery);
     devModule.include("router");
     const result = await devModule.find();
     res.json(

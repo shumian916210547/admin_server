@@ -6,6 +6,7 @@ const http = require("http");
 const connection = require("./pgsql");
 const ParseServer = require("parse-server").ParseServer;
 const ParseDashboard = require("parse-dashboard");
+const Parse = require("parse/node");
 const router = require("./routes/index");
 const databaseConfig = require("./databaseConfig");
 const utils = require("./utils");
@@ -124,6 +125,7 @@ server.listen(3000, () => {
   console.log("服务启动成功 http://localhost:3000");
   app.listen(1337, () => {
     Parse.initialize("shumian0511");
+    Parse.masterKey = "shumian100329";
     Parse.serverURL = serverURL;
   });
   console.log("Current Service Version: " + process.env.npm_package_version);

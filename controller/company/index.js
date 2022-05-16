@@ -4,6 +4,7 @@ const companyController = {
   findList: async (req, res) => {
     const company = new Parse.Query("Company");
     company.select("name", "objectId");
+    company.ascending("createdAt");
     const result = await company.find();
     res.json(
       new ResponseJson().setCode(200).setMessage("success").setData(result)

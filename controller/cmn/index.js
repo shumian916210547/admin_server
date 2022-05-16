@@ -12,6 +12,7 @@ const cmnController = {
     table.equalTo("isDelete", false);
     table.equalTo("company", companyId);
     const total = await table.count();
+    table.ascending("createdAt");
     table.limit(Number(pageSize) || 10);
     table.skip(Number(pageSize * (pageNum - 1)) || 0);
     const result = (await table.find()).map((item) => {
@@ -21,11 +22,34 @@ const cmnController = {
       );
       return item;
     });
+
     res.json(
       new ResponseJson()
         .setCode(200)
         .setMessage("success")
         .setData({ count: total, curPage: pageNum || 1, list: result })
+    );
+  },
+
+  findList: async (req, res) => {
+    const { className, companyId, name = "" } = req.query;
+    const table = new Parse.Query(className);
+    if (name && name.length) {
+      table.contains("name", name);
+    }
+    table.ascending("createdAt");
+    table.equalTo("isDelete", false);
+    table.equalTo("company", companyId);
+    const result = (await table.find()).map((item) => {
+      item = item.toJSON();
+      item.createdAt = moment(new Date(item.createdAt)).format(
+        "YYYY-MM-DD HH:mm:ss"
+      );
+      return item;
+    });
+
+    res.json(
+      new ResponseJson().setCode(200).setMessage("success").setData(result)
     );
   },
 
