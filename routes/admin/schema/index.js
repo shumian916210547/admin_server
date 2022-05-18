@@ -11,4 +11,7 @@ schemaRouter.post("/insertSchema", schemaController.insertSchema);
 /* 更新 */
 schemaRouter.put("/updateById", schemaController.updateById);
 
+/* 删除字段 */
+schemaRouter.delete("/removeFields", schemaController.removeFields);
+
 module.exports = schemaRouter;

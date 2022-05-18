@@ -100,5 +100,36 @@ const schemaController = {
       };
     }
   },
+
+  removeFields: async (req, res) => {
+    const { schemaId, fieldsName } = req.body;
+    if (!schemaId || !fieldsName) {
+      throw {
+        code: 401,
+        msg: "schemaId, fieldsName 不能为空",
+      };
+    }
+
+    const DevSchema = new Parse.Query("DevSchema");
+    DevSchema.equalTo("objectId", schemaId);
+    const devSchema = await DevSchema.first();
+    let fields = devSchema.get("fields");
+    if (!fields[fieldsName]) {
+      throw {
+        code: 404,
+        msg: "字段不存在",
+      };
+    }
+    delete fields[fieldsName];
+    const schema = new Parse.Schema(devSchema.get("name"));
+    schema.deleteField(fieldsName);
+    schema.update().then(async () => {
+      devSchema.set("fields", fields);
+      const result = await devSchema.save();
+      res.json(
+        new ResponseJson().setCode(200).setMessage("删除成功").setData(result)
+      );
+    });
+  },
 };
 module.exports = schemaController;
