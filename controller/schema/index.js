@@ -57,6 +57,7 @@ const schemaController = {
       targetClass,
       schemaId,
       defaultValue,
+      editComponent,
     } = req.body;
     let DevSchema = new Parse.Query("DevSchema");
     DevSchema.equalTo("objectId", schemaId);
@@ -71,6 +72,7 @@ const schemaController = {
             chineseName,
             targetClass,
             default: defaultValue,
+            editComponent,
           },
         })
       );
@@ -82,6 +84,7 @@ const schemaController = {
           chineseName,
           targetClass,
           default: defaultValue,
+          editComponent,
         });
 
         schema.update().then((result) => {

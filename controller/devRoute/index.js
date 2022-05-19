@@ -123,6 +123,35 @@ const devRouteController = {
       };
     }
   },
+  updateOption: async (req, res) => {
+    const { className, fieldState } = req.body;
+    if (!className || !fieldState) {
+      throw {
+        code: 401,
+        msg: "className, fieldState 不能为空",
+      };
+    }
+
+    let DevRoute = new Parse.Query("DevRoute");
+    DevRoute.equalTo("option.className", className);
+    const devRoute = await DevRoute.first();
+    if (devRoute.get("option").fields[fieldState.name]) {
+      let option = devRoute.get("option");
+      delete option.fields[fieldState.name];
+      option.fields[fieldState.name] = fieldState;
+      delete option.fields[fieldState.name].name;
+      devRoute.set("option", option);
+      const result = await devRoute.save();
+      res.json(
+        new ResponseJson().setCode(200).setMessage("更新成功").setData(result)
+      );
+    } else {
+      throw {
+        code: 404,
+        msg: "option不存在字段" + fieldState.name,
+      };
+    }
+  },
   removeById: async (req, res) => {
     const { objectId } = req.body;
     const devRoute = new Parse.Query("DevRoute");

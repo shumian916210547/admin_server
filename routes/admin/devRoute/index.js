@@ -20,4 +20,7 @@ devRouteRouter.put("/updateById", devRouteController.updateById);
 /* 删除路由 */
 devRouteRouter.delete("/removeById", devRouteController.removeById);
 
+/* 字段修改后 路由option修改 */
+devRouteRouter.put("/updateOption", devRouteController.updateOption);
+
 module.exports = devRouteRouter;
