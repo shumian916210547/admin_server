@@ -1,6 +1,7 @@
 const ResponseJson = _require("ResponseJson");
 const Query = _require("query");
 const moment = require("moment");
+const { async } = require("parse/lib/browser/Storage");
 const Parse = require("parse/node");
 const cmnController = {
   findAll: async (req, res) => {
@@ -53,6 +54,77 @@ const cmnController = {
     );
   },
 
+  insert: async (req, res) => {
+    const { params, className, companyId } = req.body;
+    if (!className) {
+      throw {
+        code: 401,
+        msg: "表名不能为空",
+      };
+    }
+    const Table = Parse.Object.extend(className);
+    const table = new Table();
+    Object.keys(params).forEach((key) => {
+      table.set(key, params[key]);
+    });
+    table.set("isDelete", false);
+    table.set("hits", 0);
+    table.set("company", {
+      __type: "Pointer",
+      className: "Company",
+      objectId: companyId,
+    });
+
+    try {
+      const result = await table.save();
+      res.json(
+        new ResponseJson().setCode(200).setMessage("添加成功").setData(result)
+      );
+    } catch (error) {
+      res.json(
+        new ResponseJson()
+          .setCode(500)
+          .setMessage("添加失败")
+          .setData(error.toString())
+      );
+    }
+  },
+
+  updateById: async (req, res) => {
+    const { objectId, companyId, className, params } = req.body;
+    if (!className || !objectId) {
+      throw {
+        code: 401,
+        msg: "表名不能为空",
+      };
+    }
+    const table = new Parse.Query(className);
+    table.equalTo("objectId", objectId);
+    table.equalTo("company", companyId);
+    const row = await table.first();
+    if (row && row.id) {
+      Object.keys(params).forEach((key) => {
+        row.set(key, params[key] || row.get(key));
+      });
+      const result = await row.save();
+      if (result && result.id) {
+        res.json(
+          new ResponseJson().setCode(200).setMessage("更新成功").setData(result)
+        );
+      } else {
+        throw {
+          code: 500,
+          msg: "更新失败",
+        };
+      }
+    } else {
+      throw {
+        code: 401,
+        msg: "id不存在",
+      };
+    }
+  },
+
   removeById: async (req, res) => {
     const { objectId, companyId, className } = req.body;
     const table = new Parse.Query(className);
@@ -75,7 +147,7 @@ const cmnController = {
     } else {
       throw {
         code: 401,
-        msg: "模块不存在",
+        msg: "id不存在",
       };
     }
   },

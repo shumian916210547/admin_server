@@ -11,4 +11,10 @@ cmnRouter.get("/findList", cmnController.findList);
 /* 删除 */
 cmnRouter.delete("/removeById", cmnController.removeById);
 
+/* 插入 */
+cmnRouter.post("/insert", cmnController.insert);
+
+/* 更新 */
+cmnRouter.put("/updateById", cmnController.updateById);
+
 module.exports = cmnRouter;
