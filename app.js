@@ -121,7 +121,8 @@ app.use(
 /* http */
 const server = http.createServer(app);
 
-server.listen(3000, () => {
+server.listen(3000, async () => {
+  connectionDataBase();
   console.log("服务启动成功 http://localhost:3000");
   app.listen(1337, () => {
     Parse.initialize("shumian0511");
@@ -129,13 +130,23 @@ server.listen(3000, () => {
     Parse.serverURL = serverURL;
   });
   console.log("Current Service Version: " + process.env.npm_package_version);
-  connection.connect((err) => {
-    if (!err) {
-      console.log("数据库连接成功");
-    } else {
-      console.log(err);
-    }
-  });
 });
+
+const connectionDataBase = () => {
+  return new Promise((resolve, reject) => {
+    connection.connect((err) => {
+      if (!err) {
+        console.log("数据库连接成功");
+        resolve(true);
+      } else {
+        console.log(err);
+        setTimeout(() => {
+          connectionDataBase();
+        }, 1000);
+        resolve(false);
+      }
+    });
+  });
+};
 
 module.exports = app;

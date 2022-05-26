@@ -58,6 +58,7 @@ const schemaController = {
       schemaId,
       defaultValue,
       editComponent,
+      dataSource,
     } = req.body;
     let DevSchema = new Parse.Query("DevSchema");
     DevSchema.equalTo("objectId", schemaId);
@@ -73,6 +74,7 @@ const schemaController = {
             targetClass,
             default: defaultValue,
             editComponent,
+            dataSource,
           },
         })
       );
@@ -85,6 +87,7 @@ const schemaController = {
           targetClass,
           default: defaultValue,
           editComponent,
+          dataSource,
         });
 
         schema.update().then((result) => {
