@@ -6,6 +6,7 @@ const http = require("http");
 const connection = require("./pgsql");
 const ParseServer = require("parse-server").ParseServer;
 const ParseDashboard = require("parse-dashboard");
+const S3Adapter = require("parse-server").S3Adapter;
 const Parse = require("parse/node");
 const router = require("./routes/index");
 const databaseConfig = require("./databaseConfig");
@@ -122,7 +123,7 @@ app.use(
 const server = http.createServer(app);
 
 server.listen(3000, async () => {
-  connectionDataBase();
+  connection.connect();
   console.log("服务启动成功 http://localhost:3000");
   app.listen(1337, () => {
     Parse.initialize("shumian0511");
@@ -131,22 +132,5 @@ server.listen(3000, async () => {
   });
   console.log("Current Service Version: " + process.env.npm_package_version);
 });
-
-const connectionDataBase = () => {
-  return new Promise((resolve, reject) => {
-    connection.connect((err) => {
-      if (!err) {
-        console.log("数据库连接成功");
-        resolve(true);
-      } else {
-        console.log(err);
-        setTimeout(() => {
-          connectionDataBase();
-        }, 1000);
-        resolve(false);
-      }
-    });
-  });
-};
 
 module.exports = app;
