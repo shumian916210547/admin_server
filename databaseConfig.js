@@ -9,7 +9,7 @@ if (process.env.NODE_ENV == "production") {
 }
 
 module.exports = {
-  user: "shumian",
+  user: "postgres",
   database: "postgres",
   password: "100329",
   host,
