@@ -1,14 +1,17 @@
 const express = require("express");
 require("express-async-errors");
 require("./global");
-require("./parsePlateform");
+const ParseServer = require("parse-server").ParseServer;
+const ParseDashboard = require("parse-dashboard");
 const app = express();
 const router = require("./routes/index");
 const moment = require("moment");
+const connection = require("./pgsql");
+const http = require("http");
 const ResponseJson = require("./ResponseJson");
+const databaseConfig = require("./databaseConfig");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 app.all("*", (req, res, next) => {
   let params = req.method == "GET" ? req.query : req.body;
   const time = moment(new Date()).format("YYYY-MM-DD HH:mm:ss");
@@ -73,6 +76,56 @@ app.use((err, req, res, next) => {
       .setCode(err.code)
       .setMessage(err.msg || err || err.message)
   );
+});
+let serverURL = "http://localhost:3000/parse";
+
+if (process.env.NODE_ENV == "development") {
+  serverURL = "http://localhost:3000/parse";
+}
+
+if (process.env.NODE_ENV == "production") {
+  serverURL = "https://api.shumian.top/parse";
+}
+
+app.use(
+  "/parse",
+  new ParseServer({
+    databaseURI: `postgres://${databaseConfig.host}:5432/postgres`,
+    cloud: "./cloud.js",
+    appId: "shumian0511",
+    masterKey: "shumian100329",
+  })
+);
+
+app.use(
+  "/dashboard",
+  new ParseDashboard(
+    {
+      apps: [
+        {
+          serverURL,
+          appId: "shumian0511",
+          masterKey: "shumian100329",
+          appName: process.env.npm_package_name,
+        },
+      ],
+    },
+    { allowInsecureHTTP: false }
+  )
+);
+
+/* http */
+const server = http.createServer(app);
+
+server.listen(3000, async () => {
+  connection.clientDataBase();
+  console.log("服务启动成功 http://localhost:3000");
+  app.listen(1337, () => {
+    Parse.initialize("shumian0511");
+    Parse.masterKey = "shumian100329";
+    Parse.serverURL = serverURL;
+  });
+  console.log("Current Service Version: " + process.env.npm_package_version);
 });
 
 module.exports = app;
