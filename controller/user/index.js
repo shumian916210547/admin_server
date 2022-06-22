@@ -21,16 +21,25 @@ const userController = {
   },
   loggingIn: async (req, res) => {
     const { username, password } = req.body;
-    if (!username || !password) {
-      throw {
-        code: 401,
-        msg: " username, password不能为空",
-      };
+    try {
+      if (!username || !password) {
+        throw {
+          code: 401,
+          msg: " username, password不能为空",
+        };
+      }
+      const user = await Parse.User.logIn(username, password);
+      res.json(
+        new ResponseJson().setCode(200).setMessage("登陆成功").setData(user)
+      );
+    } catch (error) {
+      res.json(
+        new ResponseJson()
+          .setCode(500)
+          .setMessage("登陆失败")
+          .setData(error.toString())
+      );
     }
-    const user = await Parse.User.logIn(username, password);
-    res.json(
-      new ResponseJson().setCode(200).setMessage("登陆成功").setData(user)
-    );
   },
 };
 module.exports = userController;
