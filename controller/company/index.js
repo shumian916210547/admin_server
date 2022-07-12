@@ -1,5 +1,5 @@
 const ResponseJson = _require("ResponseJson");
-const Parse = require("parse/node");
+/* const Parse = require("parse/node"); */
 const companyController = {
   findList: async (req, res) => {
     const company = new Parse.Query("Company");

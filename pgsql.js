@@ -12,9 +12,6 @@ let connection = {
       });
     } catch (error) {
       console.log(error);
-      setTimeout(() => {
-        connection.clientDataBase();
-      }, 1000);
     }
   },
 };

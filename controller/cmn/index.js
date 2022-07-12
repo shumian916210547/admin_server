@@ -2,7 +2,7 @@ const ResponseJson = _require("ResponseJson");
 const Query = _require("query");
 const moment = require("moment");
 const { async } = require("parse/lib/browser/Storage");
-const Parse = require("parse/node");
+/* const Parse = require("parse/node"); */
 const cmnController = {
   findAll: async (req, res) => {
     const { className, companyId, pageSize, pageNum, name = "" } = req.query;

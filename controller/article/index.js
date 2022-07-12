@@ -1,6 +1,6 @@
 const ResponseJson = _require("ResponseJson");
 const Query = _require("query");
-const Parse = require("parse/node");
+/* const Parse = require("parse/node"); */
 const articleController = {
   insertArticle: async (req, res) => {
     const { content, title, companyId } = req.body;
