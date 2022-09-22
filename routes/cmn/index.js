@@ -14,6 +14,9 @@ cmnRouter.delete("/removeById", cmnController.removeById);
 /* 插入 */
 cmnRouter.post("/insert", cmnController.insert);
 
+/* 批量插入 */
+cmnRouter.post("/insertList", cmnController.insertList);
+
 /* 更新 */
 cmnRouter.put("/updateById", cmnController.updateById);
 
