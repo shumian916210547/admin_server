@@ -5,7 +5,7 @@ if (process.env.NODE_ENV == "development") {
 }
 
 if (process.env.NODE_ENV == "production") {
-  host = "114.215.210.204";
+  host = "localhost";
 }
 
 module.exports = {
