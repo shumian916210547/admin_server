@@ -84,7 +84,6 @@ const cmnController = {
       }
     });
     table.set("isDelete", false);
-    table.set("hits", 0);
     table.set("company", {
       __type: "Pointer",
       className: "Company",
