@@ -5,6 +5,9 @@ const moment = require("moment");
 const cmnController = {
   findAll: async (req, res) => {
     const { className, companyId, pageSize, pageNum, name = "" } = req.query;
+    if (!className) {
+      throw new Error(`code: 401,msg: 表名不能为空`);
+    }
     const table = new Parse.Query(className);
     if (name && name.length) {
       table.contains("name", name);
@@ -34,6 +37,9 @@ const cmnController = {
 
   findList: async (req, res) => {
     const { className, companyId, name = "" } = req.query;
+    if (!className) {
+      throw new Error(`code: 401,msg: 表名不能为空`);
+    }
     const table = new Parse.Query(className);
     if (name && name.length) {
       table.contains("name", name);
@@ -57,10 +63,7 @@ const cmnController = {
   insert: async (req, res) => {
     const { params, className, companyId } = req.body;
     if (!className) {
-      throw {
-        code: 401,
-        msg: "表名不能为空",
-      };
+      throw new Error(`code: 401,msg: 表名不能为空`);
     }
 
     const t = new Parse.Query("DevSchema");
@@ -106,10 +109,7 @@ const cmnController = {
   updateById: async (req, res) => {
     const { objectId, companyId, className, params } = req.body;
     if (!className || !objectId) {
-      throw {
-        code: 401,
-        msg: "表名不能为空",
-      };
+      throw new Error(`code: 401,msg: 表名不能为空`);
     }
     const t = new Parse.Query("DevSchema");
     t.equalTo("name", className);
@@ -137,16 +137,10 @@ const cmnController = {
           new ResponseJson().setCode(200).setMessage("更新成功").setData(result)
         );
       } else {
-        throw {
-          code: 500,
-          msg: "更新失败",
-        };
+        throw new Error(`code: 500,msg: "更新失败"`);
       }
     } else {
-      throw {
-        code: 401,
-        msg: "id不存在",
-      };
+      throw new Error(`code: 401,msg: "id不存在"`);
     }
   },
 
@@ -164,16 +158,10 @@ const cmnController = {
           new ResponseJson().setCode(200).setMessage("删除成功").setData(result)
         );
       } else {
-        throw {
-          code: 500,
-          msg: "删除失败",
-        };
+        throw new Error(`code: 500,msg: "删除失败"`);
       }
     } else {
-      throw {
-        code: 401,
-        msg: "id不存在",
-      };
+      throw new Error(`code: 401,msg: "id不存在"`);
     }
   },
 
@@ -181,15 +169,9 @@ const cmnController = {
   insertList: async (req, res) => {
     const { className, columns, columnsData, companyId } = req.body;
     if (!className) {
-      throw {
-        code: 401,
-        msg: "表名不能为空",
-      };
+      throw new Error(`code: 401,msg: "表名不能为空"`);
     } else if (!columns) {
-      throw {
-        code: 401,
-        msg: "字段不能为空",
-      };
+      throw new Error(`code: 401,msg: "字段不能为空"`);
     } else {
       try {
         const Table = Parse.Object.extend(className);
