@@ -46,16 +46,16 @@ app.all("*", (req, res, next) => {
         "X-Requested-With,Content-Type,Authorization",
       "Access-Control-Allow-Methods": "PUT,POST,GET,DELETE,OPTIONS",
       "X-Powered-By": " 3.2.1",
-      "Content-Type": "application/json;charset=utf-8",
+/*       "Content-Type": "application/json;charset=utf-8", */
     });
   }
 
-  if (
+  /* if (
     process.env.NODE_ENV == "production" &&
     req.path.indexOf("/dashboard") > -1
   ) {
     res.status(404).end();
-  }
+  } */
 
   req.method === "OPTIONS" ? res.status(204).end() : next();
 });

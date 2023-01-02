@@ -16,6 +16,7 @@ const cmnController = {
     table.ascending("createdAt");
     table.limit(Number(pageSize) || 10);
     table.skip(Number(pageSize * (pageNum - 1)) || 0);
+    table.includeAll();
     const result = (await table.find()).map((item) => {
       item = item.toJSON();
       item.createdAt = moment(new Date(item.createdAt)).format(
@@ -62,10 +63,23 @@ const cmnController = {
         msg: "表名不能为空",
       };
     }
+
+    const t = new Parse.Query("DevSchema");
+    t.equalTo("name", className);
+    t.select("fields");
+    let t_obj = (await t.first()).toJSON();
     const Table = Parse.Object.extend(className);
     const table = new Table();
     Object.keys(params).forEach((key) => {
-      table.set(key, params[key]);
+      if (t_obj.fields[key].type == "Pointer") {
+        table.set(key, {
+          __type: "Pointer",
+          className: t_obj.fields[key].targetClass,
+          objectId: params[key],
+        });
+      } else {
+        table.set(key, params[key]);
+      }
     });
     table.set("isDelete", false);
     table.set("hits", 0);
@@ -98,13 +112,25 @@ const cmnController = {
         msg: "表名不能为空",
       };
     }
+    const t = new Parse.Query("DevSchema");
+    t.equalTo("name", className);
+    t.select("fields");
+    let t_obj = (await t.first()).toJSON();
     const table = new Parse.Query(className);
     table.equalTo("objectId", objectId);
     table.equalTo("company", companyId);
     const row = await table.first();
     if (row && row.id) {
       Object.keys(params).forEach((key) => {
-        row.set(key, params[key] || row.get(key));
+        if (t_obj.fields[key].type == "Pointer") {
+          row.set(key, {
+            __type: "Pointer",
+            className: t_obj.fields[key].targetClass,
+            objectId: params[key]?.objectId || params[key],
+          });
+        } else {
+          row.set(key, params[key] || row.get(key));
+        }
       });
       const result = await row.save();
       if (result && result.id) {
