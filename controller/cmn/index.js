@@ -1,7 +1,6 @@
 const ResponseJson = _require("ResponseJson");
 const Query = _require("query");
 const moment = require("moment");
-const { async } = require("parse/lib/browser/Storage");
 /* const Parse = require("parse/node"); */
 const cmnController = {
   findAll: async (req, res) => {
@@ -175,6 +174,51 @@ const cmnController = {
         code: 401,
         msg: "id不存在",
       };
+    }
+  },
+
+  /* 批量导入 */
+  insertList: async (req, res) => {
+    const { className, columns, columnsData, companyId } = req.body;
+    if (!className) {
+      throw {
+        code: 401,
+        msg: "表名不能为空",
+      };
+    } else if (!columns) {
+      throw {
+        code: 401,
+        msg: "字段不能为空",
+      };
+    } else {
+      try {
+        const Table = Parse.Object.extend(className);
+        for (const item of columnsData) {
+          const table = new Table();
+          columns.forEach((key) => {
+            table.set(key, item[key]);
+          });
+          table.set("company", {
+            __type: "Pointer",
+            className: "Company",
+            objectId: companyId,
+          });
+          await table.save();
+        }
+        res.json(
+          new ResponseJson()
+            .setCode(200)
+            .setMessage("批量导入执行成功")
+            .setData()
+        );
+      } catch (error) {
+        res.json(
+          new ResponseJson()
+            .setCode(500)
+            .setMessage("批量导入执行失败")
+            .setData(error.toString())
+        );
+      }
     }
   },
 };
