@@ -127,7 +127,11 @@ const cmnController = {
             objectId: params[key]?.objectId || params[key],
           });
         } else {
-          row.set(key, params[key] || row.get(key));
+          if (params[key] != undefined) {
+            row.set(key, params[key]);
+          } else {
+            row.set(key, row.get(key));
+          }
         }
       });
       const result = await row.save();
