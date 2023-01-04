@@ -22,6 +22,7 @@ const schemaController = {
     }
 
     let schema = new Parse.Schema(name);
+    schema.addPointer("company", "Company");
     schema.save().then((result) => {
       if (result && result.className == name) {
         const DevSchema = Parse.Object.extend("DevSchema");

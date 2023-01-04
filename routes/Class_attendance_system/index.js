@@ -14,4 +14,14 @@ Class_attendance_systemRouter.get(
   Class_attendance_systemController.task_list
 ); //获取今天签到
 
+Class_attendance_systemRouter.post(
+  "/check_in",
+  Class_attendance_systemController.check_in
+); //签到
+
+Class_attendance_systemRouter.get(
+  "/findSchedule",
+  Class_attendance_systemController.findSchedule
+); //查询今天课程
+
 module.exports = Class_attendance_systemRouter;
