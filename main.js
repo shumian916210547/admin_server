@@ -123,6 +123,7 @@ server.listen(3000, async () => {
   app.listen(1337, () => {
     Parse.initialize("shumian0511");
     Parse.masterKey = "shumian100329";
+    
     Parse.serverURL = serverURL;
   });
   console.log("Current Service Version: " + process.env.npm_package_version);

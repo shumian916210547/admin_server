@@ -11,7 +11,9 @@ const devModuleController = {
     }
     devModule.equalTo("isDelete", false);
     const total = await devModule.count();
+    devModule.equalTo("isDelete", false);
     devModule.ascending("createdAt");
+    devModule.include("router");
     devModule.limit(Number(pageSize) || 10);
     devModule.skip(Number(pageSize * (pageNum - 1)) || 0);
     const result = (await devModule.find()).map((module) => {
@@ -19,6 +21,9 @@ const devModuleController = {
       module.createdAt = moment(new Date(module.createdAt)).format(
         "YYYY-MM-DD HH:mm:ss"
       );
+      module.router = module.router.filter((route) => {
+        return !route.isDelete;
+      });
       return module;
     });
     res.json(
@@ -32,11 +37,14 @@ const devModuleController = {
     const devModule = new Parse.Query("DevModule");
     devModule.descending("createdAt");
     devModule.equalTo("isDelete", false);
-    const innerQuery = new Parse.Query("DevRoute");
-    innerQuery.equalTo("isDelete", false);
-    devModule.matchesQuery("router", innerQuery);
     devModule.include("router");
-    const result = await devModule.find();
+    const result = (await devModule.find()).map((module) => {
+      module = module.toJSON();
+      module.router = module.router.filter((route) => {
+        return !route.isDelete;
+      });
+      return module;
+    });
     res.json(
       new ResponseJson().setCode(200).setMessage("success").setData(result)
     );
