@@ -28,7 +28,19 @@ const userController = {
           msg: " username, password不能为空",
         };
       }
-      const user = await Parse.User.logIn(username, password);
+      let user = (await Parse.User.logIn(username, password)).toJSON();
+      const devModule = new Parse.Query("DevModule");
+      devModule.equalTo("user", user.objectId);
+      devModule.equalTo("isDelete", false);
+      devModule.descending("createdAt");
+      devModule.includeAll();
+      user["modules"] = (await devModule.find()).map((module) => {
+        module = module.toJSON();
+        module.router = module.router.filter((route) => {
+          return !route.isDelete;
+        });
+        return module;
+      });
       res.json(
         new ResponseJson().setCode(200).setMessage("登陆成功").setData(user)
       );
@@ -40,6 +52,19 @@ const userController = {
           .setData(error.toString())
       );
     }
+  },
+  userModuleList: async (req, res) => {
+    const { userid } = req.query;
+    if (!userid) {
+      throw {
+        code: 401,
+        msg: "userid不能为空",
+      };
+    }
+
+    res.json(
+      new ResponseJson().setCode(200).setMessage("success").setData(result)
+    );
   },
 };
 module.exports = userController;

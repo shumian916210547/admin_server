@@ -13,7 +13,7 @@ const devModuleController = {
     const total = await devModule.count();
     devModule.equalTo("isDelete", false);
     devModule.ascending("createdAt");
-    devModule.include("router");
+    devModule.includeAll();
     devModule.limit(Number(pageSize) || 10);
     devModule.skip(Number(pageSize * (pageNum - 1)) || 0);
     const result = (await devModule.find()).map((module) => {
@@ -37,7 +37,7 @@ const devModuleController = {
     const devModule = new Parse.Query("DevModule");
     devModule.descending("createdAt");
     devModule.equalTo("isDelete", false);
-    devModule.include("router");
+    devModule.includeAll();
     const result = (await devModule.find()).map((module) => {
       module = module.toJSON();
       module.router = module.router.filter((route) => {
@@ -70,7 +70,7 @@ const devModuleController = {
     );
   },
   insertDevModule: async (req, res) => {
-    const { name, router, meta } = req.body;
+    const { name, router, meta, user } = req.body;
     if (!name || !meta.companyId) {
       throw {
         code: 401,
@@ -90,6 +90,11 @@ const devModuleController = {
     devModule.set("isDelete", false);
     devModule.set("meta", meta);
     devModule.set("router", routes || []);
+    devModule.set("user", {
+      __type: "Pointer",
+      className: "_User",
+      objectId: user,
+    });
     const result = await devModule.save();
     if (result && result.id) {
       res.json(
@@ -103,7 +108,7 @@ const devModuleController = {
     }
   },
   updateById: async (req, res) => {
-    const { objectId, name, router, meta } = req.body;
+    const { objectId, name, router, meta, user } = req.body;
     if (!objectId || !name || !meta.companyId) {
       throw {
         code: 401,
@@ -124,6 +129,14 @@ const devModuleController = {
       module.set("name", name || module.get("name"));
       module.set("router", routes || module.get("router"));
       module.set("meta", meta || module.get("meta"));
+      module.set(
+        "user",
+        {
+          __type: "Pointer",
+          className: "_User",
+          objectId: user,
+        } || module.get("user")
+      );
       const result = await module.save();
       if (result && result.id) {
         res.json(

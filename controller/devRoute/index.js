@@ -33,12 +33,12 @@ const devRouteController = {
     const devRoute = new Parse.Query("DevRoute");
     devRoute.ascending("createdAt");
     devRoute.equalTo("isDelete", false);
-    const result = (await devRoute.find()).map((route) => {
+    const result = await devRoute.find(); /* .map((route) => {
       return {
         value: route.id,
         label: route.get("name"),
       };
-    });
+    }) */
     res.json(
       new ResponseJson().setCode(200).setMessage("success").setData(result)
     );

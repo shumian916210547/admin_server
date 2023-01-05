@@ -80,7 +80,7 @@ const cmnController = {
           objectId: params[key],
         });
       } else {
-        table.set(key, params[key]);
+        table.set(key, params[key] || t_obj.fields[key].default);
       }
     });
     table.set("isDelete", false);
