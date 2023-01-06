@@ -9,10 +9,13 @@ const devRouteController = {
     if (name && name.length) {
       devRoute.contains("name", name);
     }
-
     devRoute.equalTo("isDelete", false);
     const total = await devRoute.count();
+/*     const Switch = new Parse.Query("Switch");
+    Switch.select("objectId", "name");
+    devRoute.matchesQuery("switchs", Switch); */
     devRoute.ascending("createdAt");
+    devRoute.includeAll();
     devRoute.limit(Number(pageSize) || 10);
     devRoute.skip(Number(pageSize * (pageNum - 1)) || 0);
     const result = (await devRoute.find()).map((route) => {
@@ -33,6 +36,7 @@ const devRouteController = {
     const devRoute = new Parse.Query("DevRoute");
     devRoute.ascending("createdAt");
     devRoute.equalTo("isDelete", false);
+    devRoute.includeAll();
     const result = await devRoute.find(); /* .map((route) => {
       return {
         value: route.id,
@@ -61,14 +65,20 @@ const devRouteController = {
     );
   },
   insertDevRoute: async (req, res) => {
-    const { pagePath, name, path, option } = req.body;
+    const { pagePath, name, path, option, switchs } = req.body;
     if (!pagePath || !name || !path) {
       throw {
         msg: "pagePath, name, path不能为空",
         code: 401,
       };
     }
-
+    let Switchs = switchs?.map((item) => {
+      return {
+        __type: "Pointer",
+        className: "Switch",
+        objectId: item,
+      };
+    });
     const DevRoute = Parse.Object.extend("DevRoute");
     const devRoute = new DevRoute();
     devRoute.set("name", name);
@@ -76,6 +86,7 @@ const devRouteController = {
     devRoute.set("pagePath", pagePath);
     devRoute.set("isDelete", false);
     devRoute.set("option", option);
+    devRoute.set("switchs", Switchs || []);
     const result = await devRoute.save();
     if (result && result.id) {
       res.json(
@@ -89,14 +100,21 @@ const devRouteController = {
     }
   },
   updateById: async (req, res) => {
-    const { objectId, pagePath, name, path, option } = req.body;
+    const { objectId, pagePath, name, path, option, switchs } = req.body;
     if (!objectId) {
       throw {
         code: 401,
         msg: "objectId不能为空",
       };
     }
-
+    console.log(switchs);
+    let Switchs = switchs?.map((item) => {
+      return {
+        __type: "Pointer",
+        className: "Switch",
+        objectId: item,
+      };
+    });
     const devRoute = new Parse.Query("DevRoute");
     devRoute.equalTo("objectId", objectId);
     const route = await devRoute.first();
@@ -105,6 +123,7 @@ const devRouteController = {
       route.set("name", name || route.get("name"));
       route.set("path", path || route.get("path"));
       route.set("option", option || route.get("route"));
+      route.set("switchs", Switchs || route.get("switchs"));
       const result = await route.save();
       if (result && result.id) {
         res.json(

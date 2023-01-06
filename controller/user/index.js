@@ -33,7 +33,7 @@ const userController = {
       devModule.equalTo("user", user.objectId);
       devModule.equalTo("isDelete", false);
       devModule.descending("createdAt");
-      devModule.includeAll();
+      devModule.include(["user", "router.switchs"]);
       user["modules"] = (await devModule.find()).map((module) => {
         module = module.toJSON();
         module.router = module.router.filter((route) => {
