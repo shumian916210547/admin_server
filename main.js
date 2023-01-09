@@ -3,6 +3,7 @@ require("express-async-errors");
 require("./global");
 const ParseServer = require("parse-server").ParseServer;
 const ParseDashboard = require("parse-dashboard");
+const Parse = require("parse/node");
 const app = express();
 const router = require("./routes/index");
 const moment = require("moment");
@@ -123,7 +124,6 @@ server.listen(3000, async () => {
   app.listen(1337, () => {
     Parse.initialize("shumian0511");
     Parse.masterKey = "shumian100329";
-    
     Parse.serverURL = serverURL;
   });
   console.log("Current Service Version: " + process.env.npm_package_version);
