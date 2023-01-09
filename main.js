@@ -80,7 +80,7 @@ app.use((err, req, res, next) => {
 let serverURL = "http://localhost:3000/parse";
 
 if (process.env.NODE_ENV == "production") {
-  serverURL = "https://114.215.210.204/parse";
+  serverURL = "https://api.shumian.top/parse";
 }
 
 app.use(

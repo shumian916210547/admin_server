@@ -4,7 +4,7 @@ const Parse = require("parse/node");
 let serverURL = "http://localhost:3000/parse";
 
 if (process.env.NODE_ENV == "production") {
-  serverURL = "http://114.215.210.204/parse";
+  serverURL = "http://api.shumian.top/parse";
 }
 
 Parse.initialize("shumian0511");

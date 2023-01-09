@@ -1,11 +1,11 @@
-let host = "114.215.210.204";
+let host = "api.shumian.top";
 
 if (process.env.NODE_ENV == "development") {
   host = "localhost";
 }
 
 if (process.env.NODE_ENV == "production") {
-  host = "114.215.210.204";
+  host = "api.shumian.top";
 }
 
 module.exports = {
