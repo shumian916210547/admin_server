@@ -1,5 +1,5 @@
 const ResponseJson = _require("ResponseJson");
-const Parse = require("parse/node");
+//const Parse = require("parse/node");
 const Query = _require("query");
 const schemaController = {
   findList: async (req, res) => {

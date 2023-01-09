@@ -1,5 +1,5 @@
 const ResponseJson = _require("ResponseJson");
-const Parse = require("parse/node");
+//const Parse = require("parse/node");
 const userController = {
   signUp: async (req, res) => {
     const { username, password, email } = req.body;
