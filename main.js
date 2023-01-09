@@ -46,7 +46,7 @@ app.all("*", (req, res, next) => {
         "X-Requested-With,Content-Type,Authorization",
       "Access-Control-Allow-Methods": "PUT,POST,GET,DELETE,OPTIONS",
       "X-Powered-By": " 3.2.1",
-/*       "Content-Type": "application/json;charset=utf-8", */
+      /*       "Content-Type": "application/json;charset=utf-8", */
     });
   }
 
@@ -79,12 +79,8 @@ app.use((err, req, res, next) => {
 });
 let serverURL = "http://localhost:3000/parse";
 
-if (process.env.NODE_ENV == "development") {
-  serverURL = "http://localhost:3000/parse";
-}
-
 if (process.env.NODE_ENV == "production") {
-  serverURL = "https://api.shumian.top/parse";
+  serverURL = "https://114.215.210.204/parse";
 }
 
 app.use(
