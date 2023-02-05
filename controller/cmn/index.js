@@ -206,6 +206,22 @@ const cmnController = {
       }
     }
   },
+
+  getClientIP: async (req, res) => {
+    let ip =
+      req.headers["x-real-ip"] ||
+      req.headers["x-forwarded-for"] ||
+      req.connection.remoteAddres ||
+      req.socket.remoteAddress ||
+      "";
+    console.log(ip);
+    res.json(
+      new ResponseJson()
+        .setCode(200)
+        .setMessage("success")
+        .setData(ip)
+    );
+  }
 };
 
 module.exports = cmnController;

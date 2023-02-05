@@ -20,4 +20,7 @@ cmnRouter.post("/insertList", cmnController.insertList);
 /* 更新 */
 cmnRouter.put("/updateById", cmnController.updateById);
 
+/* 更新 */
+cmnRouter.get("/getClientIP", cmnController.getClientIP);
+
 module.exports = cmnRouter;

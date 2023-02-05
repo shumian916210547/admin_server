@@ -13,6 +13,7 @@
     "express": "~4.16.1",
     "express-async-errors": "^3.1.1",
     "moment": "^2.29.3",
+    "nodemon": "^2.0.20",
     "parse": "^3.2.0",
     "parse-dashboard": "^4.1.0",
     "parse-server": "^5.2.0",

@@ -1,15 +1,9 @@
 const path = require("path");
-const fs = require("fs");
 const Parse = require("parse/node");
-let serverURL = "http://localhost:3000/parse";
-
-if (process.env.NODE_ENV == "production") {
-  serverURL = "http://api.shumian.top/parse";
-}
 
 Parse.initialize("shumian0511");
 Parse.masterKey = "shumian100329";
-Parse.serverURL = serverURL;
+Parse.serverURL = "http://localhost:3000/parse";
 global._require = (filePath) => {
   return require(path.join(process.cwd(), filePath));
 };
