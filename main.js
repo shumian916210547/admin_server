@@ -57,6 +57,8 @@ app.all("*", (req, res, next) => {
 });
 app.use(router);
 
+
+
 const ParseDashboard = require("parse-dashboard");
 app.use(
   "/dashboard",
@@ -64,7 +66,7 @@ app.use(
     {
       apps: [
         {
-          serverURL: "http://localhost:3000/parse",
+          serverURL: 'http://localhost:3000/parse',
           appId: "shumian0511",
           masterKey: "shumian100329",
           appName: process.env.npm_package_name,

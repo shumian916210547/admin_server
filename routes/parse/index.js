@@ -4,7 +4,7 @@ const ParseServer = require("parse-server").ParseServer;
 const databaseConfig = _require("databaseConfig");
 
 const parse_server = new ParseServer({
-  databaseURI: `postgres://postgres:100329@${databaseConfig.host}:5432/postgres`,
+  databaseURI: `postgres://postgres:100329@localhost:5432/postgres`,
   cloud: "./cloud.js",
   appId: "shumian0511",
   masterKey: "shumian100329",
