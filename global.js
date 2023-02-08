@@ -31,7 +31,7 @@ global.ServerHOST = () => {
 
 Parse.initialize("shumian0511");
 Parse.masterKey = "shumian100329";
-Parse.serverURL = ParseHOST;
+Parse.serverURL = "http://localhost:3000/parse";
 global.Parse = () => {
   return Parse;
 };

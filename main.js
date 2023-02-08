@@ -62,7 +62,7 @@ app.all("*", (req, res, next) => {
 app.use(
   "/parse",
   new ParseServer({
-    databaseURI: `postgres://postgres:100329@${PostgresHOST}:5432/postgres`,
+    databaseURI: `postgres://postgres:100329@localhost:5432/postgres`,
     cloud: "./cloud.js",
     appId: "shumian0511",
     masterKey: "shumian100329",
