@@ -6,6 +6,7 @@ global._require = (filePath) => {
 };
 
 global.ParseHOST = () => {
+  console.log(process.env.NODE_ENV);
   if (process.env.NODE_ENV == "production") {
     return "https://api.shumian.top/parse";
   } else {
