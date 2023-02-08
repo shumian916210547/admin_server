@@ -108,6 +108,7 @@ app.use((err, req, res, next) => {
 /* http */
 const server = http.createServer(app);
 server.listen(3000, async () => {
+  console.log("当前环境:", process.env.NODE_ENV);
   connection.clientDataBase();
   console.log("服务启动成功 http://localhost:3000");
   app.listen(1337);
