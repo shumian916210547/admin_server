@@ -12,8 +12,6 @@ module.exports = {
         NODE_ENV: "production",
         npm_package_name: "admin_server",
       },
-      error_file: "./pm2logs/app-err.log",
-      out_file: "./pm2logs/app-out.log",
       log_date_format: "YYYY-MM-DD HH:mm:ss",
     },
   ],
