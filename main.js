@@ -62,7 +62,7 @@ app.all("*", (req, res, next) => {
 app.use(
   "/parse",
   new ParseServer({
-    databaseURI: `postgres://postgres:100329@localhost:5432/postgres`,
+    databaseURI: `postgres://postgres:100329@${PostgresHOST}:5432/postgres`,
     cloud: "./cloud.js",
     appId: "shumian0511",
     masterKey: "shumian100329",
@@ -110,7 +110,7 @@ const server = http.createServer(app);
 server.listen(3000, async () => {
   console.log("当前环境:", process.env.NODE_ENV);
   connection.clientDataBase();
-  console.log("服务启动成功 http://localhost:3000");
+  console.log("服务启动成功:", ServerHOST);
   app.listen(1337);
 });
 
