@@ -76,7 +76,7 @@ app.use(
     {
       apps: [
         {
-          serverURL: ParseHOST,
+          serverURL: process.env.ParseHost,
           appId: "shumian0511",
           masterKey: "shumian100329",
           appName: process.env.npm_package_name,
@@ -110,7 +110,7 @@ const server = http.createServer(app);
 server.listen(3000, async () => {
   console.log("当前环境:", process.env.NODE_ENV);
   connection.clientDataBase();
-  console.log("服务启动成功:", ServerHOST);
+  console.log("服务启动成功:", process.env.ServerHost);
   app.listen(1337);
 });
 
