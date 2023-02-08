@@ -1,12 +1,14 @@
-const express = require("express");
-require("express-async-errors");
 require("./global");
-const app = express();
-const router = require("./routes/index");
-const moment = require("moment");
-const connection = require("./pgsql");
+require("express-async-errors");
 const http = require("http");
+const moment = require("moment");
+const express = require("express");
+const connection = require("./pgsql");
+const router = require("./routes/index");
 const ResponseJson = require("./ResponseJson");
+const ParseDashboard = require("parse-dashboard");
+const ParseServer = require("parse-server").ParseServer;
+const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.all("*", (req, res, next) => {
@@ -55,18 +57,26 @@ app.all("*", (req, res, next) => {
 
   req.method === "OPTIONS" ? res.status(204).end() : next();
 });
-app.use(router);
 
+/* parse-server */
+app.use(
+  "/parse",
+  new ParseServer({
+    databaseURI: `postgres://postgres:100329@localhost:5432/postgres`,
+    cloud: "./cloud.js",
+    appId: "shumian0511",
+    masterKey: "shumian100329",
+  })
+);
 
-
-const ParseDashboard = require("parse-dashboard");
+/* parse-dashboard */
 app.use(
   "/dashboard",
   new ParseDashboard(
     {
       apps: [
         {
-          serverURL: 'http://localhost:3000/parse',
+          serverURL: ParseHOST,
           appId: "shumian0511",
           masterKey: "shumian100329",
           appName: process.env.npm_package_name,
@@ -76,6 +86,8 @@ app.use(
     { allowInsecureHTTP: false }
   )
 );
+
+app.use(router);
 
 /* 捕获错误 */
 app.use((err, req, res, next) => {
@@ -95,7 +107,6 @@ app.use((err, req, res, next) => {
 
 /* http */
 const server = http.createServer(app);
-
 server.listen(3000, async () => {
   connection.clientDataBase();
   console.log("服务启动成功 http://localhost:3000");
