@@ -111,7 +111,6 @@ server.listen(3000, async () => {
   connection.clientDataBase();
   console.log("服务启动成功 http://localhost:3000");
   app.listen(1337);
-  console.log("Current Service Version: " + process.env.npm_package_version);
 });
 
 module.exports = app;

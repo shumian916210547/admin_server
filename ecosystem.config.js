@@ -5,11 +5,12 @@ module.exports = {
       script: "app.js",
       watch: false,
       ignore_watch: ["node_modules", "logs"],
-      env_dev: {
+      env_development: {
         NODE_ENV: "development",
       },
-      env_prod: {
+      env_production: {
         NODE_ENV: "production",
+        npm_package_name: "admin_server",
       },
       error_file: "./pm2logs/app-err.log",
       out_file: "./pm2logs/app-out.log",
