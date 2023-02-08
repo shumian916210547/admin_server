@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "admin_server",
       script: "app.js",
-      watch: true,
+      watch: false,
       ignore_watch: ["node_modules", "logs"],
       env_dev: {
         NODE_ENV: "development",
