@@ -1,12 +1,12 @@
 {
-  "name": "admin-server",
+  "name": "admin_server",
   "version": "0.1.0",
   "private": true,
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
     "dev": "pm2 start --env development&&pm2 log",
-    "server": "set NODE_ENV=production&&node app.js"
+    "prod": "pm2 start --env production"
   },
   "dependencies": {
     "@parse/s3-files-adapter": "^1.6.2",

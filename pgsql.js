@@ -1,5 +1,5 @@
 const pg = require("pg");
-const databaseConfig = require("./databaseConfig");
+const databaseConfig = require("./database.config");
 let connection = {
   client: undefined,
   clientDataBase: () => {
