@@ -76,7 +76,7 @@ app.use(
     {
       apps: [
         {
-          serverURL: "http://localhost:3000/parse",
+          serverURL: process.env.ParseHost || "http://localhost:3000/parse",
           appId: "shumian0511",
           masterKey: "shumian100329",
           appName: process.env.npm_package_name,
