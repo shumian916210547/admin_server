@@ -1,6 +1,8 @@
 const ResponseJson = _require("ResponseJson");
 const Query = _require("query");
 const moment = require("moment");
+const fs = require('fs')
+const path = require('path')
 //const Parse = require("parse/node");
 const cmnController = {
   findAll: async (req, res) => {
@@ -221,6 +223,29 @@ const cmnController = {
         .setMessage("success")
         .setData(ip)
     );
+  },
+
+  uploadFile: async (req, res) => {
+    const oldPath = req.file.path
+    const newPath = todayStatic + req.file.originalname
+    fs.renameSync(oldPath, newPath)
+    res.json(
+      new ResponseJson()
+        .setCode(200)
+        .setMessage("上传成功")
+        .setData({
+          path: '/readFile/' + newPath,
+          filename: req.file.originalname,
+          size: req.file.size,
+          mimetype: req.file.mimetype
+        })
+    );
+  },
+
+  readFile: async (req, res) => {
+    const { year, month, day, filename } = req.params
+    const filepath = 'resources/' + year + '/' + month + '/' + day + '/' + filename
+    res.sendFile(path.join(process.cwd(), filepath))
   }
 };
 

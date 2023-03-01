@@ -23,4 +23,10 @@ cmnRouter.put("/updateById", cmnController.updateById);
 /* 更新 */
 cmnRouter.get("/getClientIP", cmnController.getClientIP);
 
+/* 上传文件 */
+cmnRouter.post("/uploadFile", upload.single('file'), cmnController.uploadFile);
+
+/* 读取文件 */
+cmnRouter.get("/readFile/resources/:year/:month/:day/:filename", cmnController.readFile);
+
 module.exports = cmnRouter;
