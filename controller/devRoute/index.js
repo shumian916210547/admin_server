@@ -4,16 +4,20 @@ const moment = require("moment");
 //const Parse = require("parse/node");
 const devRouteController = {
   findAll: async (req, res) => {
-    const { pageSize, pageNum, name = "" } = req.query;
+    const {
+      pageSize,
+      pageNum,
+      name = ""
+    } = req.query;
     const devRoute = new Parse.Query("DevRoute");
     if (name && name.length) {
       devRoute.contains("name", name);
     }
-    devRoute.equalTo("isDelete", false);
+    /* devRoute.equalTo("isDelete", false); */
     const total = await devRoute.count();
-/*     const Switch = new Parse.Query("Switch");
-    Switch.select("objectId", "name");
-    devRoute.matchesQuery("switchs", Switch); */
+    /*     const Switch = new Parse.Query("Switch");
+        Switch.select("objectId", "name");
+        devRoute.matchesQuery("switchs", Switch); */
     devRoute.ascending("createdAt");
     devRoute.includeAll();
     devRoute.limit(Number(pageSize) || 10);
@@ -29,26 +33,33 @@ const devRouteController = {
       new ResponseJson()
         .setCode(200)
         .setMessage("success")
-        .setData({ count: total, curPage: pageNum || 1, list: result })
+        .setData({
+          count: total,
+          curPage: pageNum || 1,
+          list: result
+        })
     );
   },
   findList: async (req, res) => {
     const devRoute = new Parse.Query("DevRoute");
     devRoute.ascending("createdAt");
-    devRoute.equalTo("isDelete", false);
+    /* devRoute.equalTo("isDelete", false); */
     devRoute.includeAll();
-    const result = await devRoute.find(); /* .map((route) => {
-      return {
-        value: route.id,
-        label: route.get("name"),
-      };
-    }) */
+    const result = await devRoute.find();
+    /* .map((route) => {
+         return {
+           value: route.id,
+           label: route.get("name"),
+         };
+       }) */
     res.json(
       new ResponseJson().setCode(200).setMessage("success").setData(result)
     );
   },
   findById: async (req, res) => {
-    const { objectId } = req.query;
+    const {
+      objectId
+    } = req.query;
     if (!objectId) {
       throw {
         code: 401,
@@ -57,7 +68,7 @@ const devRouteController = {
     }
     const devRoute = new Parse.Query("DevRoute");
     devRoute.equalTo("objectId", objectId);
-    devRoute.equalTo("isDelete", false);
+    /* devRoute.equalTo("isDelete", false); */
     devRoute.include("router");
     const result = await devRoute.first();
     res.json(
@@ -65,7 +76,13 @@ const devRouteController = {
     );
   },
   insertDevRoute: async (req, res) => {
-    const { pagePath, name, path, option, switchs } = req.body;
+    const {
+      pagePath,
+      name,
+      path,
+      option,
+      switchs
+    } = req.body;
     if (!pagePath || !name || !path) {
       throw {
         msg: "pagePath, name, path不能为空",
@@ -100,14 +117,22 @@ const devRouteController = {
     }
   },
   updateById: async (req, res) => {
-    const { objectId, pagePath, name, path, option, switchs } = req.body;
+    const {
+      objectId,
+      pagePath,
+      name,
+      path,
+      option,
+      switchs,
+      isDelete
+    } = req.body;
     if (!objectId) {
       throw {
         code: 401,
         msg: "objectId不能为空",
       };
     }
-    console.log(switchs);
+    console.log(req.body);
     let Switchs = switchs?.map((item) => {
       return {
         __type: "Pointer",
@@ -124,6 +149,8 @@ const devRouteController = {
       route.set("path", path || route.get("path"));
       route.set("option", option || route.get("route"));
       route.set("switchs", Switchs || route.get("switchs"));
+      route.set("isDelete", isDelete == null ? route.get("isDelete") : isDelete);
+      console.log(route.toJSON());
       const result = await route.save();
       if (result && result.id) {
         res.json(
@@ -143,7 +170,10 @@ const devRouteController = {
     }
   },
   updateOption: async (req, res) => {
-    const { className, fieldState } = req.body;
+    const {
+      className,
+      fieldState
+    } = req.body;
     if (!className || !fieldState) {
       throw {
         code: 401,
@@ -172,7 +202,9 @@ const devRouteController = {
     }
   },
   removeById: async (req, res) => {
-    const { objectId } = req.body;
+    const {
+      objectId
+    } = req.body;
     const devRoute = new Parse.Query("DevRoute");
     devRoute.equalTo("objectId", objectId);
     const route = await devRoute.first();
