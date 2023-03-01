@@ -4,7 +4,7 @@ module.exports = {
       name: "admin_server",
       script: "app.js",
       watch: true,
-      ignore_watch: ["node_modules", "logs", ".git", ".gitignore", "README.md"],
+      ignore_watch: ["node_modules", "logs", ".git", ".gitignore", "README.md", "resources"],
       env_development: {
         NODE_ENV: "development",
         npm_package_name: "admin_server",
