@@ -5,7 +5,7 @@ const schemaController = {
   findList: async (req, res) => {
     const DevSchema = new Parse.Query("DevSchema");
     DevSchema.equalTo("isDelete", false);
-    DevSchema.ascending("createdAt");
+    DevSchema.descending("createdAt");
     const result = await DevSchema.find();
     res.json(
       new ResponseJson().setCode(200).setMessage("success").setData(result)

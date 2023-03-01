@@ -18,7 +18,7 @@ const devRouteController = {
     /*     const Switch = new Parse.Query("Switch");
         Switch.select("objectId", "name");
         devRoute.matchesQuery("switchs", Switch); */
-    devRoute.ascending("createdAt");
+    devRoute.descending("createdAt");
     devRoute.includeAll();
     devRoute.limit(Number(pageSize) || 10);
     devRoute.skip(Number(pageSize * (pageNum - 1)) || 0);
@@ -42,7 +42,7 @@ const devRouteController = {
   },
   findList: async (req, res) => {
     const devRoute = new Parse.Query("DevRoute");
-    devRoute.ascending("createdAt");
+    devRoute.descending("createdAt");
     /* devRoute.equalTo("isDelete", false); */
     devRoute.includeAll();
     const result = await devRoute.find();

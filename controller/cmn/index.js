@@ -15,7 +15,7 @@ const cmnController = {
     table.equalTo("isDelete", false);
     table.equalTo("company", companyId);
     const total = await table.count();
-    table.ascending("createdAt");
+    table.descending("createdAt");
     table.limit(Number(pageSize) || 10);
     table.skip(Number(pageSize * (pageNum - 1)) || 0);
     table.includeAll();
@@ -44,7 +44,7 @@ const cmnController = {
     if (name && name.length) {
       table.contains("name", name);
     }
-    table.ascending("createdAt");
+    table.descending("createdAt");
     table.equalTo("isDelete", false);
     table.equalTo("company", companyId);
     const result = (await table.find()).map((item) => {

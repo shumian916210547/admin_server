@@ -12,7 +12,7 @@ const devModuleController = {
     devModule.equalTo("isDelete", false);
     const total = await devModule.count();
     devModule.equalTo("isDelete", false);
-    devModule.ascending("createdAt");
+    devModule.descending("createdAt");
     devModule.includeAll();
     devModule.limit(Number(pageSize) || 10);
     devModule.skip(Number(pageSize * (pageNum - 1)) || 0);
