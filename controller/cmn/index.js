@@ -7,8 +7,15 @@ const path = require('path')
 const cmnController = {
   findAll: async (req, res) => {
     const { className, companyId, pageSize, pageNum, name = "" } = req.query;
-    if (!className) {
-      throw new Error(`code: 401,msg: 表名不能为空`);
+    try {
+      verify({
+        className
+      })
+    } catch (error) {
+      throw {
+        code: 401,
+        msg: error,
+      };
     }
     const table = new Parse.Query(className);
     if (name && name.length) {
@@ -39,9 +46,17 @@ const cmnController = {
 
   findList: async (req, res) => {
     const { className, companyId, name = "" } = req.query;
-    if (!className) {
-      throw new Error(`code: 401,msg: 表名不能为空`);
+    try {
+      verify({
+        className
+      })
+    } catch (error) {
+      throw {
+        code: 401,
+        msg: error,
+      };
     }
+
     const table = new Parse.Query(className);
     if (name && name.length) {
       table.contains("name", name);
@@ -64,8 +79,16 @@ const cmnController = {
 
   insert: async (req, res) => {
     const { params, className, companyId } = req.body;
-    if (!className) {
-      throw new Error(`code: 401,msg: 表名不能为空`);
+
+    try {
+      verify({
+        className
+      })
+    } catch (error) {
+      throw {
+        code: 401,
+        msg: error,
+      };
     }
 
     const t = new Parse.Query("DevSchema");
@@ -109,8 +132,15 @@ const cmnController = {
 
   updateById: async (req, res) => {
     const { objectId, companyId, className, params } = req.body;
-    if (!className || !objectId) {
-      throw new Error(`code: 401,msg: 表名不能为空`);
+    try {
+      verify({
+        objectId, className
+      })
+    } catch (error) {
+      throw {
+        code: 401,
+        msg: error,
+      };
     }
     const t = new Parse.Query("DevSchema");
     t.equalTo("name", className);
@@ -173,39 +203,44 @@ const cmnController = {
   /* 批量导入 */
   insertList: async (req, res) => {
     const { className, columns, columnsData, companyId } = req.body;
-    if (!className) {
-      throw new Error(`code: 401,msg: "表名不能为空"`);
-    } else if (!columns) {
-      throw new Error(`code: 401,msg: "字段不能为空"`);
-    } else {
-      try {
-        const Table = Parse.Object.extend(className);
-        for (const item of columnsData) {
-          const table = new Table();
-          columns.forEach((key) => {
-            table.set(key, item[key]);
-          });
-          table.set("company", {
-            __type: "Pointer",
-            className: "Company",
-            objectId: companyId,
-          });
-          await table.save();
-        }
-        res.json(
-          new ResponseJson()
-            .setCode(200)
-            .setMessage("批量导入执行成功")
-            .setData()
-        );
-      } catch (error) {
-        res.json(
-          new ResponseJson()
-            .setCode(500)
-            .setMessage("批量导入执行失败")
-            .setData(error.toString())
-        );
+
+    try {
+      verify({
+        className, columns
+      })
+    } catch (error) {
+      throw {
+        code: 401,
+        msg: error,
+      };
+    }
+    try {
+      const Table = Parse.Object.extend(className);
+      for (const item of columnsData) {
+        const table = new Table();
+        columns.forEach((key) => {
+          table.set(key, item[key]);
+        });
+        table.set("company", {
+          __type: "Pointer",
+          className: "Company",
+          objectId: companyId,
+        });
+        await table.save();
       }
+      res.json(
+        new ResponseJson()
+          .setCode(200)
+          .setMessage("批量导入执行成功")
+          .setData()
+      );
+    } catch (error) {
+      res.json(
+        new ResponseJson()
+          .setCode(500)
+          .setMessage("批量导入执行失败")
+          .setData(error.toString())
+      );
     }
   },
 
@@ -216,7 +251,6 @@ const cmnController = {
       req.connection.remoteAddres ||
       req.socket.remoteAddress ||
       "";
-    console.log(ip);
     res.json(
       new ResponseJson()
         .setCode(200)

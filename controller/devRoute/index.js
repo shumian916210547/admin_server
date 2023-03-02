@@ -60,10 +60,13 @@ const devRouteController = {
     const {
       objectId
     } = req.query;
-    if (!objectId) {
+
+    try {
+      verify({ objectId })
+    } catch (error) {
       throw {
         code: 401,
-        msg: "objectId不能为空",
+        msg: error,
       };
     }
     const devRoute = new Parse.Query("DevRoute");
@@ -83,10 +86,16 @@ const devRouteController = {
       option,
       switchs
     } = req.body;
-    if (!pagePath || !name || !path) {
+    try {
+      verify({
+        pagePath,
+        name,
+        path,
+      })
+    } catch (error) {
       throw {
-        msg: "pagePath, name, path不能为空",
         code: 401,
+        msg: error,
       };
     }
     let Switchs = switchs?.map((item) => {
@@ -126,13 +135,16 @@ const devRouteController = {
       switchs,
       isDelete
     } = req.body;
-    if (!objectId) {
+    try {
+      verify({
+        objectId
+      })
+    } catch (error) {
       throw {
         code: 401,
-        msg: "objectId不能为空",
+        msg: error,
       };
     }
-    console.log(req.body);
     let Switchs = switchs?.map((item) => {
       return {
         __type: "Pointer",
@@ -174,10 +186,16 @@ const devRouteController = {
       className,
       fieldState
     } = req.body;
-    if (!className || !fieldState) {
+
+    try {
+      verify({
+        className,
+        fieldState
+      })
+    } catch (error) {
       throw {
         code: 401,
-        msg: "className, fieldState 不能为空",
+        msg: error,
       };
     }
 

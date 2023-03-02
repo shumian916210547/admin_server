@@ -51,10 +51,14 @@ const devModuleController = {
   },
   findById: async (req, res) => {
     const { objectId } = req.query;
-    if (!objectId) {
+    try {
+      verify({
+        objectId
+      })
+    } catch (error) {
       throw {
         code: 401,
-        msg: "objectId不能为空",
+        msg: error,
       };
     }
     const devModule = new Parse.Query("DevModule");
@@ -71,10 +75,15 @@ const devModuleController = {
   },
   insertDevModule: async (req, res) => {
     const { name, router, meta, user } = req.body;
-    if (!name || !meta.companyId) {
+
+    try {
+      verify({
+        name, 'meta.companyId': meta.companyId
+      })
+    } catch (error) {
       throw {
         code: 401,
-        msg: " name,meta.companyId不能为空",
+        msg: error,
       };
     }
     let routes = router?.map((route) => {
@@ -109,10 +118,14 @@ const devModuleController = {
   },
   updateById: async (req, res) => {
     const { objectId, name, router, meta, user } = req.body;
-    if (!objectId || !name || !meta.companyId) {
+    try {
+      verify({
+        objectId, name, 'meta.companyId': meta.companyId
+      })
+    } catch (error) {
       throw {
         code: 401,
-        msg: "objectId,name,meta.companyId不能为空",
+        msg: error,
       };
     }
     const devModule = new Parse.Query("DevModule");

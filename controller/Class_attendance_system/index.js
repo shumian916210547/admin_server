@@ -5,15 +5,14 @@ const moment = require("moment");
 const Class_attendance_systemController = {
   student_login: async (req, res) => {
     const { studentID, loginPwd } = req.body;
-    if (!studentID) {
+    try {
+      verify({
+        studentID, loginPwd
+      })
+    } catch (error) {
       throw {
         code: 401,
-        msg: "studentID不能为空",
-      };
-    } else if (!loginPwd) {
-      throw {
-        code: 401,
-        msg: "loginPwd不能为空",
+        msg: error,
       };
     }
     try {
@@ -48,10 +47,14 @@ const Class_attendance_systemController = {
   },
   task_list: async (req, res) => {
     const { studentid } = req.query;
-    if (!studentid) {
+    try {
+      verify({
+        studentid
+      })
+    } catch (error) {
       throw {
         code: 401,
-        msg: "studentid不能为空",
+        msg: error,
       };
     }
     try {
@@ -76,25 +79,14 @@ const Class_attendance_systemController = {
   },
   check_in: async (req, res) => {
     const { studentid, code, time, tdid } = req.body;
-    if (!studentid) {
+    try {
+      verify({
+        studentid, code, time, tdid
+      })
+    } catch (error) {
       throw {
         code: 401,
-        msg: "studentid不能为空",
-      };
-    } else if (!code) {
-      throw {
-        code: 401,
-        msg: "code不能为空",
-      };
-    } else if (!time) {
-      throw {
-        code: 401,
-        msg: "time不能为空",
-      };
-    } else if (!tdid) {
-      throw {
-        code: 401,
-        msg: "tdid不能为空",
+        msg: error,
       };
     }
     try {

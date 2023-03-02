@@ -14,3 +14,14 @@ Parse.serverURL = "http://localhost:3000/parse";
 global.Parse = Parse;
 global.todayStatic = "resources/" + year + "/" + (month + 1) + "/" + day + "/";
 global.upload = multer({ dest: todayStatic });
+global.verify = (params) => {
+  for (const key of Object.keys({ ...params })) {
+    if (typeof (params[key]) === 'object') {
+      if (Object.keys(params[key]).length === 0) {
+        throw (key + '不能为空')
+      }
+    } else if (params[key] == undefined || !params[key]) {
+      throw (key + '不能为空')
+    }
+  }
+}

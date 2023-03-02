@@ -4,10 +4,12 @@ const userController = {
   signUp: async (req, res) => {
     const { username, password, email, companyId, identityId, nickname } =
       req.body;
-    if (!username || !password) {
+    try {
+      verify({ username, password })
+    } catch (error) {
       throw {
         code: 401,
-        msg: " username, password不能为空",
+        msg: error,
       };
     }
     const user = new Parse.User();
@@ -37,6 +39,14 @@ const userController = {
   },
   userExist: async (req, res) => {
     const { username } = req.query;
+    try {
+      verify({ username })
+    } catch (error) {
+      throw {
+        code: 401,
+        msg: error,
+      };
+    }
     const User = new Parse.Query("_User");
     User.equalTo("username", username);
     const exist = (await User.count()) === 0 ? false : true;
@@ -45,7 +55,7 @@ const userController = {
     );
   },
   updateUser: async (req, res) => {
-    const { username, password, email, nickname,objectId } = req.body;
+    const { username, password, email, nickname, objectId } = req.body;
     const User = new Parse.Query("_User");
     User.equalTo("username", username);
     User.equalTo("objectId", objectId);
@@ -64,10 +74,12 @@ const userController = {
   loggingIn: async (req, res) => {
     const { username, password } = req.body;
     try {
-      if (!username || !password) {
+      try {
+        verify({ username, password })
+      } catch (error) {
         throw {
           code: 401,
-          msg: " username, password不能为空",
+          msg: error,
         };
       }
       let user = (await Parse.User.logIn(username, password)).toJSON();

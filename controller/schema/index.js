@@ -14,10 +14,12 @@ const schemaController = {
 
   insertSchema: async (req, res) => {
     const { name, companyId } = req.body;
-    if (!name) {
+    try {
+      verify({ name })
+    } catch (error) {
       throw {
         code: 401,
-        msg: "schema名称不能为空",
+        msg: error,
       };
     }
 
