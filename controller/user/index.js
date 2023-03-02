@@ -2,7 +2,7 @@ const ResponseJson = _require("ResponseJson");
 //const Parse = require("parse/node");
 const userController = {
   signUp: async (req, res) => {
-    const { username, password, email, companyId, identityId, nickname } =
+    const { username, password, email, companyId, identity, nickname } =
       req.body;
     try {
       verify({ username, password })
@@ -12,30 +12,40 @@ const userController = {
         msg: error,
       };
     }
-    const user = new Parse.User();
-    user.set("username", username);
-    user.set("password", password);
-    user.set("nickname", nickname);
-    user.set("isDelete", false);
-    user.set("email", email || undefined);
-    user.set("authData", {});
-    user.set("company", {
-      __type: "Pointer",
-      className: "Company",
-      objectId: companyId,
-    });
-    user.set("identity", {
-      __type: "Pointer",
-      className: "Identity",
-      objectId: identityId,
-    });
-    const result = await user.signUp();
-    res.json(
-      new ResponseJson()
-        .setCode(200)
-        .setMessage("success")
-        .setData(result.toJSON())
-    );
+
+    try {
+      const user = new Parse.User();
+      user.set("username", username);
+      user.set("password", password);
+      user.set("nickname", nickname);
+      user.set("isDelete", false);
+      user.set("email", email || undefined);
+      user.set("authData", {});
+      user.set("company", {
+        __type: "Pointer",
+        className: "Company",
+        objectId: companyId,
+      });
+      user.set("identity", {
+        __type: "Pointer",
+        className: "Identity",
+        objectId: identity,
+      });
+      const result = await user.signUp();
+      res.json(
+        new ResponseJson()
+          .setCode(200)
+          .setMessage("success")
+          .setData(result.toJSON())
+      );
+    } catch (error) {
+      throw {
+        code: 500,
+        msg: error,
+      };
+    }
+
+
   },
   userExist: async (req, res) => {
     const { username } = req.query;
