@@ -117,5 +117,23 @@ const userController = {
       );
     }
   },
+  removeUser: async (req, res) => {
+    const { objectId, up } = req.body
+    try {
+      verify({ objectId, up })
+    } catch (error) {
+      throw {
+        code: 401,
+        msg: error,
+      };
+    }
+    const { username, password } = JSON.parse(up)
+    const user = await Parse.User.logIn(username, password);
+    user.set("isDelete", true);
+    await user.save()
+    res.json(
+      new ResponseJson().setCode(200).setMessage("删除成功").setData(user)
+    );
+  }
 };
 module.exports = userController;

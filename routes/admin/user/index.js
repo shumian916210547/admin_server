@@ -8,4 +8,7 @@ userRouter.post("/signUp", userController.signUp);
 /* 登录 */
 userRouter.post("/loggingIn", userController.loggingIn);
 
+/* 删除 */
+userRouter.delete("/removeUser", userController.removeUser)
+
 module.exports = userRouter;

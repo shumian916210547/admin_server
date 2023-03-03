@@ -6,7 +6,13 @@ const path = require('path')
 //const Parse = require("parse/node");
 const cmnController = {
   findAll: async (req, res) => {
-    const { className, companyId, pageSize, pageNum, name = "" } = req.query;
+    const {
+      className,
+      companyId,
+      pageSize,
+      pageNum,
+      name = ""
+    } = req.query;
     try {
       verify({
         className
@@ -38,14 +44,22 @@ const cmnController = {
 
     res.json(
       new ResponseJson()
-        .setCode(200)
-        .setMessage("success")
-        .setData({ count: total, curPage: pageNum || 1, list: result })
+      .setCode(200)
+      .setMessage("success")
+      .setData({
+        count: total,
+        curPage: pageNum || 1,
+        list: result
+      })
     );
   },
 
   findList: async (req, res) => {
-    const { className, companyId, name = "" } = req.query;
+    const {
+      className,
+      companyId,
+      name = ""
+    } = req.query;
     try {
       verify({
         className
@@ -78,7 +92,11 @@ const cmnController = {
   },
 
   insert: async (req, res) => {
-    const { params, className, companyId } = req.body;
+    const {
+      params,
+      className,
+      companyId
+    } = req.body;
 
     try {
       verify({
@@ -123,18 +141,24 @@ const cmnController = {
     } catch (error) {
       res.json(
         new ResponseJson()
-          .setCode(500)
-          .setMessage("添加失败")
-          .setData(error.toString())
+        .setCode(500)
+        .setMessage("添加失败")
+        .setData(error.toString())
       );
     }
   },
 
   updateById: async (req, res) => {
-    const { objectId, companyId, className, params } = req.body;
+    const {
+      objectId,
+      companyId,
+      className,
+      params
+    } = req.body;
     try {
       verify({
-        objectId, className
+        objectId,
+        className
       })
     } catch (error) {
       throw {
@@ -180,7 +204,11 @@ const cmnController = {
   },
 
   removeById: async (req, res) => {
-    const { objectId, companyId, className } = req.body;
+    const {
+      objectId,
+      companyId,
+      className
+    } = req.body;
     const table = new Parse.Query(className);
     table.equalTo("objectId", objectId);
     table.equalTo("company", companyId);
@@ -202,11 +230,17 @@ const cmnController = {
 
   /* 批量导入 */
   insertList: async (req, res) => {
-    const { className, columns, columnsData, companyId } = req.body;
+    const {
+      className,
+      columns,
+      columnsData,
+      companyId
+    } = req.body;
 
     try {
       verify({
-        className, columns
+        className,
+        columns
       })
     } catch (error) {
       throw {
@@ -230,16 +264,16 @@ const cmnController = {
       }
       res.json(
         new ResponseJson()
-          .setCode(200)
-          .setMessage("批量导入执行成功")
-          .setData()
+        .setCode(200)
+        .setMessage("批量导入执行成功")
+        .setData()
       );
     } catch (error) {
       res.json(
         new ResponseJson()
-          .setCode(500)
-          .setMessage("批量导入执行失败")
-          .setData(error.toString())
+        .setCode(500)
+        .setMessage("批量导入执行失败")
+        .setData(error.toString())
       );
     }
   },
@@ -253,9 +287,9 @@ const cmnController = {
       "";
     res.json(
       new ResponseJson()
-        .setCode(200)
-        .setMessage("success")
-        .setData(ip)
+      .setCode(200)
+      .setMessage("success")
+      .setData(ip)
     );
   },
 
@@ -265,19 +299,24 @@ const cmnController = {
     fs.renameSync(oldPath, newPath)
     res.json(
       new ResponseJson()
-        .setCode(200)
-        .setMessage("上传成功")
-        .setData({
-          path: '/readFile/' + newPath,
-          filename: req.file.originalname,
-          size: req.file.size,
-          mimetype: req.file.mimetype
-        })
+      .setCode(200)
+      .setMessage("上传成功")
+      .setData({
+        url: process.env.ServerHost + '/cmn/readFile/' + newPath,
+        name: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      })
     );
   },
 
   readFile: async (req, res) => {
-    const { year, month, day, filename } = req.params
+    const {
+      year,
+      month,
+      day,
+      filename
+    } = req.params
     const filepath = 'resources/' + year + '/' + month + '/' + day + '/' + filename
     res.sendFile(path.join(process.cwd(), filepath))
   }

@@ -13,9 +13,14 @@ const schemaController = {
   },
 
   insertSchema: async (req, res) => {
-    const { name, companyId } = req.body;
+    const {
+      name,
+      companyId
+    } = req.body;
     try {
-      verify({ name })
+      verify({
+        name
+      })
     } catch (error) {
       throw {
         code: 401,
@@ -41,9 +46,9 @@ const schemaController = {
           if (record && record.id) {
             res.json(
               new ResponseJson()
-                .setCode(200)
-                .setMessage("新建成功")
-                .setData(record)
+              .setCode(200)
+              .setMessage("新建成功")
+              .setData(record)
             );
           }
         });
@@ -62,6 +67,7 @@ const schemaController = {
       defaultValue,
       editComponent,
       dataSource,
+      isOneself
     } = req.body;
     let DevSchema = new Parse.Query("DevSchema");
     DevSchema.equalTo("objectId", schemaId);
@@ -78,6 +84,7 @@ const schemaController = {
             default: defaultValue,
             editComponent,
             dataSource,
+            isOneself
           },
         })
       );
@@ -91,14 +98,15 @@ const schemaController = {
           default: defaultValue,
           editComponent,
           dataSource,
+          isOneself
         });
 
         schema.update().then((result) => {
           res.json(
             new ResponseJson()
-              .setCode(200)
-              .setMessage("更新成功")
-              .setData(result)
+            .setCode(200)
+            .setMessage("更新成功")
+            .setData(result)
           );
         });
       }
@@ -111,7 +119,10 @@ const schemaController = {
   },
 
   removeFields: async (req, res) => {
-    const { schemaId, fieldsName } = req.body;
+    const {
+      schemaId,
+      fieldsName
+    } = req.body;
     if (!schemaId || !fieldsName) {
       throw {
         code: 401,
