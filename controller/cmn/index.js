@@ -295,15 +295,28 @@ const cmnController = {
 
   uploadFile: async (req, res) => {
     const oldPath = req.file.path
-    const newPath = todayStatic + req.file.originalname
-    fs.renameSync(oldPath, newPath)
+    let name = Buffer.from(req.file.originalname, "latin1").toString("utf8")
+    let newPath = todayStatic + name
+    let newPatht = todayStatic + req.file.originalname
+    if (fs.existsSync(newPath)) {
+      fs.unlinkSync(newPath)
+    } else if (fs.existsSync(newPatht)) {
+      fs.unlinkSync(newPatht)
+    }
+    try {
+      fs.renameSync(oldPath, newPath)
+    } catch (error) {
+      name = req.file.originalname
+      newPath = newPatht
+      fs.renameSync(oldPath, newPath)
+    }
     res.json(
       new ResponseJson()
       .setCode(200)
       .setMessage("上传成功")
       .setData({
         url: process.env.ServerHost + '/cmn/readFile/' + newPath,
-        name: req.file.originalname,
+        name,
         size: req.file.size,
         mimetype: req.file.mimetype
       })
