@@ -27,6 +27,6 @@ cmnRouter.get("/getClientIP", cmnController.getClientIP);
 cmnRouter.post("/uploadFile", upload.single('file'), cmnController.uploadFile);
 
 /* 读取文件 */
-cmnRouter.get("/readFile/resources/:year/:month/:day/:filename", cmnController.readFile);
+cmnRouter.get("/readFile/resources/:uid/:year/:month/:day/:filename", cmnController.readFile);
 
 module.exports = cmnRouter;

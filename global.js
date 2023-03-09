@@ -5,17 +5,22 @@ global._require = (filePath) => {
   return require(path.join(process.cwd(), filePath));
 };
 const date = new Date();
-const year = date.getFullYear();
-const month = date.getMonth();
-const day = date.getDate();
+global.year = date.getFullYear();
+global.month = date.getMonth() + 1;
+global.day = date.getDate();
 Parse.initialize("shumian0511");
 Parse.masterKey = "shumian100329";
 Parse.serverURL = "http://localhost:3000/parse";
 global.Parse = Parse;
-global.todayStatic = "resources/" + year + "/" + (month + 1) + "/" + day + "/";
-global.upload = multer({ dest: todayStatic });
+global.static = "resources/";
+global.today = year + "/" + month + "/" + day
+global.upload = multer({
+  dest: '/resources'
+})
 global.verify = (params) => {
-  for (const key of Object.keys({ ...params })) {
+  for (const key of Object.keys({
+      ...params
+    })) {
     if (typeof (params[key]) === 'object') {
       if (Object.keys(params[key]).length === 0) {
         throw (key + '不能为空')

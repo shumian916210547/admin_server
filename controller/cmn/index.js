@@ -294,10 +294,33 @@ const cmnController = {
   },
 
   uploadFile: async (req, res) => {
+    const {
+      userid
+    } = req.body
+    console.log(req);
+    try {
+      verify({
+        userid
+      })
+    } catch (error) {
+      throw {
+        code: 401,
+        msg: error,
+      };
+    }
+
     const oldPath = req.file.path
     let name = Buffer.from(req.file.originalname, "latin1").toString("utf8")
-    let newPath = todayStatic + name
-    let newPatht = todayStatic + req.file.originalname
+    let newPath = static + userid + '/' + today + "/" + name
+    let newPatht = static + userid + '/' + today + "/" + req.file.originalname
+    const dir = ['resources', '/' + userid, '/' + year, '/' + month, '/' + day]
+    let p = ''
+    for (const d of dir) {
+      p += d
+      if (!fs.existsSync(p)) {
+        fs.mkdirSync(p)
+      }
+    }
     if (fs.existsSync(newPath)) {
       fs.unlinkSync(newPath)
     } else if (fs.existsSync(newPatht)) {
@@ -325,12 +348,13 @@ const cmnController = {
 
   readFile: async (req, res) => {
     const {
+      uid,
       year,
       month,
       day,
       filename
     } = req.params
-    const filepath = 'resources/' + year + '/' + month + '/' + day + '/' + filename
+    const filepath = 'resources/' + uid + '/' + year + '/' + month + '/' + day + '/' + filename
     res.sendFile(path.join(process.cwd(), filepath))
   }
 };
