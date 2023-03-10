@@ -5,9 +5,9 @@ global._require = (filePath) => {
   return require(path.join(process.cwd(), filePath));
 };
 const date = new Date();
-global.year = date.getFullYear();
-global.month = date.getMonth() + 1;
-global.day = date.getDate();
+global.year = date.getUTCFullYear();
+global.month = date.getUTCMonth() + 1;
+global.day = date.getUTCDate();
 Parse.initialize("shumian0511");
 Parse.masterKey = "shumian100329";
 Parse.serverURL = "http://localhost:3000/parse";
