@@ -3,8 +3,12 @@ const ResponseJson = _require("ResponseJson");
 const Query = _require("query");
 const schemaController = {
   findList: async (req, res) => {
+    const {
+      companyId
+    } = req.query
     const DevSchema = new Parse.Query("DevSchema");
     DevSchema.equalTo("isDelete", false);
+    DevSchema.equalTo("company", companyId)
     DevSchema.descending("createdAt");
     const result = await DevSchema.find();
     res.json(

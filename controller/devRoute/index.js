@@ -7,17 +7,16 @@ const devRouteController = {
     const {
       pageSize,
       pageNum,
-      name = ""
+      name = "",
+      companyId
     } = req.query;
     const devRoute = new Parse.Query("DevRoute");
     if (name && name.length) {
       devRoute.contains("name", name);
     }
-    /* devRoute.equalTo("isDelete", false); */
+    devRoute.equalTo("isDelete", false);
+    devRoute.equalTo("company", companyId)
     const total = await devRoute.count();
-    /*     const Switch = new Parse.Query("Switch");
-        Switch.select("objectId", "name");
-        devRoute.matchesQuery("switchs", Switch); */
     devRoute.descending("createdAt");
     devRoute.includeAll();
     devRoute.limit(Number(pageSize) || 10);
@@ -31,19 +30,23 @@ const devRouteController = {
     });
     res.json(
       new ResponseJson()
-        .setCode(200)
-        .setMessage("success")
-        .setData({
-          count: total,
-          curPage: pageNum || 1,
-          list: result
-        })
+      .setCode(200)
+      .setMessage("success")
+      .setData({
+        count: total,
+        curPage: pageNum || 1,
+        list: result
+      })
     );
   },
   findList: async (req, res) => {
+    const {
+      companyId
+    } = req.query
     const devRoute = new Parse.Query("DevRoute");
     devRoute.descending("createdAt");
-    /* devRoute.equalTo("isDelete", false); */
+    devRoute.equalTo("isDelete", false);
+    devRoute.equalTo("company", companyId)
     devRoute.includeAll();
     const result = await devRoute.find();
     /* .map((route) => {
@@ -62,7 +65,9 @@ const devRouteController = {
     } = req.query;
 
     try {
-      verify({ objectId })
+      verify({
+        objectId
+      })
     } catch (error) {
       throw {
         code: 401,
@@ -86,6 +91,9 @@ const devRouteController = {
       option,
       switchs
     } = req.body;
+    const {
+      companyId
+    } = req.query
     try {
       verify({
         pagePath,
@@ -113,6 +121,11 @@ const devRouteController = {
     devRoute.set("isDelete", false);
     devRoute.set("option", option);
     devRoute.set("switchs", Switchs || []);
+    devRoute.set({
+      __type: "Pointer",
+      className: "Company",
+      objectId: companyId
+    })
     const result = await devRoute.save();
     if (result && result.id) {
       res.json(

@@ -4,14 +4,19 @@ const Query = _require("query");
 const moment = require("moment");
 const devModuleController = {
   findAll: async (req, res) => {
-    const { pageSize, pageNum, name = "" } = req.query;
+    const {
+      pageSize,
+      pageNum,
+      name = "",
+      companyId
+    } = req.query;
     const devModule = new Parse.Query("DevModule");
     if (name && name.length) {
       devModule.contains("name", name);
     }
     devModule.equalTo("isDelete", false);
+    devModule.equalTo("company", companyId)
     const total = await devModule.count();
-    devModule.equalTo("isDelete", false);
     devModule.descending("createdAt");
     devModule.includeAll();
     devModule.limit(Number(pageSize) || 10);
@@ -28,14 +33,22 @@ const devModuleController = {
     });
     res.json(
       new ResponseJson()
-        .setCode(200)
-        .setMessage("success")
-        .setData({ count: total, curPage: pageNum || 1, list: result })
+      .setCode(200)
+      .setMessage("success")
+      .setData({
+        count: total,
+        curPage: pageNum || 1,
+        list: result
+      })
     );
   },
   findList: async (req, res) => {
+    const {
+      companyId
+    } = req.query
     const devModule = new Parse.Query("DevModule");
     devModule.descending("createdAt");
+    devModule.equalTo("company", companyId)
     devModule.equalTo("isDelete", false);
     devModule.includeAll();
     const result = (await devModule.find()).map((module) => {
@@ -50,7 +63,9 @@ const devModuleController = {
     );
   },
   findById: async (req, res) => {
-    const { objectId } = req.query;
+    const {
+      objectId
+    } = req.query;
     try {
       verify({
         objectId
@@ -68,17 +83,25 @@ const devModuleController = {
     const result = await devModule.first();
     res.json(
       new ResponseJson()
-        .setCode(200)
-        .setMessage("success")
-        .setData(result || {})
+      .setCode(200)
+      .setMessage("success")
+      .setData(result || {})
     );
   },
   insertDevModule: async (req, res) => {
-    const { name, router, meta, user } = req.body;
-
+    const {
+      name,
+      router,
+      meta,
+      user
+    } = req.body;
+    const {
+      companyId
+    } = req.query
     try {
       verify({
-        name, 'meta.companyId': meta.companyId
+        name,
+        'meta.companyId': meta.companyId
       })
     } catch (error) {
       throw {
@@ -104,6 +127,11 @@ const devModuleController = {
       className: "_User",
       objectId: user,
     });
+    devModule.set("company", {
+      __type: "Pointer",
+      className: "Company",
+      objectId: companyId,
+    });
     const result = await devModule.save();
     if (result && result.id) {
       res.json(
@@ -117,10 +145,18 @@ const devModuleController = {
     }
   },
   updateById: async (req, res) => {
-    const { objectId, name, router, meta, user } = req.body;
+    const {
+      objectId,
+      name,
+      router,
+      meta,
+      user
+    } = req.body;
     try {
       verify({
-        objectId, name, 'meta.companyId': meta.companyId
+        objectId,
+        name,
+        'meta.companyId': meta.companyId
       })
     } catch (error) {
       throw {
@@ -143,8 +179,7 @@ const devModuleController = {
       module.set("router", routes || module.get("router"));
       module.set("meta", meta || module.get("meta"));
       module.set(
-        "user",
-        {
+        "user", {
           __type: "Pointer",
           className: "_User",
           objectId: user,
@@ -169,7 +204,9 @@ const devModuleController = {
     }
   },
   removeById: async (req, res) => {
-    const { objectId } = req.body;
+    const {
+      objectId
+    } = req.body;
     const devModule = new Parse.Query("DevModule");
     devModule.equalTo("objectId", objectId);
     const module = await devModule.first();

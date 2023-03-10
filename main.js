@@ -10,7 +10,9 @@ const ParseDashboard = require("parse-dashboard");
 const ParseServer = require("parse-server").ParseServer;
 const app = express();
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({
+  extended: true
+}));
 app.all("*", (req, res, next) => {
   let params = req.method == "GET" ? req.query : req.body;
   const time = moment(new Date()).format("YYYY-MM-DD HH:mm:ss");
@@ -40,8 +42,7 @@ app.all("*", (req, res, next) => {
     res.set({
       "Access-Control-Allow-Credentials": true,
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers":
-        "X-Requested-With,Content-Type,Authorization",
+      "Access-Control-Allow-Headers": "X-Requested-With,Content-Type,Authorization",
       "Access-Control-Allow-Methods": "PUT,POST,GET,DELETE,OPTIONS",
       "X-Powered-By": " 3.2.1",
       /*       "Content-Type": "application/json;charset=utf-8", */
@@ -66,25 +67,25 @@ app.use(
     cloud: "./cloud.js",
     appId: "shumian0511",
     masterKey: "shumian100329",
+    directAccess: false,
+    enforcePrivateUsers: false
   })
 );
 
 /* parse-dashboard */
 app.use(
   "/dashboard",
-  new ParseDashboard(
-    {
-      apps: [
-        {
-          serverURL: process.env.ParseHost || "http://localhost:3000/parse",
-          appId: "shumian0511",
-          masterKey: "shumian100329",
-          appName: process.env.npm_package_name,
-        },
-      ],
-    },
-    { allowInsecureHTTP: false }
-  )
+  new ParseDashboard({
+    apps: [{
+      serverURL: process.env.ParseHost || "http://localhost:3000/parse",
+      appId: "shumian0511",
+      masterKey: "shumian100329",
+      appName: process.env.npm_package_name,
+      supportedPushLocales: ["cn", "en", "ru", "fr"]
+    }, ],
+  }, {
+    allowInsecureHTTP: false
+  })
 );
 
 app.use(router);
@@ -100,8 +101,8 @@ app.use((err, req, res, next) => {
   console.log(err);
   res.json(
     new ResponseJson()
-      .setCode(err.code)
-      .setMessage(err.msg || err || err.message)
+    .setCode(err.code)
+    .setMessage(err.msg || err || err.message)
   );
 });
 

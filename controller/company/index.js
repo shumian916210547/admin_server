@@ -3,12 +3,14 @@ const ResponseJson = _require("ResponseJson");
 const companyController = {
   findList: async (req, res) => {
     let {
-      isDelete = 'all'
+      isDelete = 'all',
+        companyId
     } = req.query
     const company = new Parse.Query("Company");
     if (String(isDelete) != 'all') {
       company.equalTo("isDelete", isDelete)
     }
+    company.equalTo("company", companyId)
     company.select("name", "objectId");
     company.descending("createdAt");
     const result = await company.find();
