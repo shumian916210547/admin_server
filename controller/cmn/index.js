@@ -55,10 +55,11 @@ const cmnController = {
   },
 
   findList: async (req, res) => {
-    const {
+    let {
       className,
       companyId,
-      name = ""
+      name = "",
+      equalTo = {}
     } = req.query;
     try {
       verify({
@@ -76,6 +77,14 @@ const cmnController = {
       table.contains("name", name);
     }
     table.descending("createdAt");
+    if (typeof equalTo === 'string') {
+      equalTo = JSON.parse(equalTo)
+    }
+    if (equalTo && Object.keys(equalTo).length) {
+      Object.keys(equalTo).forEach(k => {
+        table.equalTo(k, equalTo[k]);
+      })
+    }
     table.equalTo("isDelete", false);
     table.equalTo("company", companyId);
     const result = (await table.find()).map((item) => {

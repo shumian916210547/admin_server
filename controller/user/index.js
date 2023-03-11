@@ -2,10 +2,20 @@ const ResponseJson = _require("ResponseJson");
 //const Parse = require("parse/node");
 const userController = {
   signUp: async (req, res) => {
-    const { username, password, email, companyId, identity, nickname } =
-      req.body;
+    const {
+      username,
+      password,
+      email,
+      companyId,
+      identityId,
+      nickname
+    } =
+    req.body;
     try {
-      verify({ username, password })
+      verify({
+        username,
+        password
+      })
     } catch (error) {
       throw {
         code: 401,
@@ -29,14 +39,14 @@ const userController = {
       user.set("identity", {
         __type: "Pointer",
         className: "Identity",
-        objectId: identity,
+        objectId: identityId,
       });
       const result = await user.signUp();
       res.json(
         new ResponseJson()
-          .setCode(200)
-          .setMessage("success")
-          .setData(result.toJSON())
+        .setCode(200)
+        .setMessage("success")
+        .setData(result.toJSON())
       );
     } catch (error) {
       throw {
@@ -48,9 +58,13 @@ const userController = {
 
   },
   userExist: async (req, res) => {
-    const { username } = req.query;
+    const {
+      username
+    } = req.query;
     try {
-      verify({ username })
+      verify({
+        username
+      })
     } catch (error) {
       throw {
         code: 401,
@@ -65,7 +79,13 @@ const userController = {
     );
   },
   updateUser: async (req, res) => {
-    const { username, password, email, nickname, objectId } = req.body;
+    const {
+      username,
+      password,
+      email,
+      nickname,
+      objectId
+    } = req.body;
     const User = new Parse.Query("_User");
     User.equalTo("username", username);
     User.equalTo("objectId", objectId);
@@ -76,16 +96,22 @@ const userController = {
     const result = await user.save();
     res.json(
       new ResponseJson()
-        .setCode(200)
-        .setMessage("success")
-        .setData(result.toJSON())
+      .setCode(200)
+      .setMessage("success")
+      .setData(result.toJSON())
     );
   },
   loggingIn: async (req, res) => {
-    const { username, password } = req.body;
+    const {
+      username,
+      password
+    } = req.body;
     try {
       try {
-        verify({ username, password })
+        verify({
+          username,
+          password
+        })
       } catch (error) {
         throw {
           code: 401,
@@ -111,23 +137,32 @@ const userController = {
     } catch (error) {
       res.json(
         new ResponseJson()
-          .setCode(500)
-          .setMessage("登陆失败")
-          .setData(error.toString())
+        .setCode(500)
+        .setMessage("登陆失败")
+        .setData(error.toString())
       );
     }
   },
   removeUser: async (req, res) => {
-    const { objectId, up } = req.body
+    const {
+      objectId,
+      up
+    } = req.body
     try {
-      verify({ objectId, up })
+      verify({
+        objectId,
+        up
+      })
     } catch (error) {
       throw {
         code: 401,
         msg: error,
       };
     }
-    const { username, password } = JSON.parse(up)
+    const {
+      username,
+      password
+    } = JSON.parse(up)
     const user = await Parse.User.logIn(username, password);
     user.set("isDelete", true);
     await user.save()
