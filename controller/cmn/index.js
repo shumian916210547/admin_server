@@ -305,8 +305,7 @@ const cmnController = {
   uploadFile: async (req, res) => {
     const {
       userid
-    } = req.body
-    console.log(req);
+    } = req.body;
     try {
       verify({
         userid

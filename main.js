@@ -33,6 +33,10 @@ app.all("*", (req, res, next) => {
     console.log("请求路径：" + req.originalUrl, " 耗时：" + deltaTime + "ms");
   };
 
+  /* if (req.method !== 'GET') { 
+
+  } */
+
   if (req.method != "OPTIONS") {
     res.once("finish", calResponseTime);
     /* res.once('close', calResponseTime); */
