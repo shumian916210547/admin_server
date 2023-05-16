@@ -1,5 +1,5 @@
 const ResponseJson = _require("ResponseJson");
-//const Parse = require("parse/node");
+
 const userController = {
   signUp: async (req, res) => {
     const {
@@ -10,7 +10,7 @@ const userController = {
       identityId,
       nickname
     } =
-    req.body;
+      req.body;
     try {
       verify({
         username,
@@ -44,9 +44,9 @@ const userController = {
       const result = await user.signUp();
       res.json(
         new ResponseJson()
-        .setCode(200)
-        .setMessage("success")
-        .setData(result.toJSON())
+          .setCode(200)
+          .setMessage("success")
+          .setData(result.toJSON())
       );
     } catch (error) {
       throw {
@@ -96,9 +96,9 @@ const userController = {
     const result = await user.save();
     res.json(
       new ResponseJson()
-      .setCode(200)
-      .setMessage("success")
-      .setData(result.toJSON())
+        .setCode(200)
+        .setMessage("success")
+        .setData(result.toJSON())
     );
   },
   loggingIn: async (req, res) => {
@@ -137,9 +137,9 @@ const userController = {
     } catch (error) {
       res.json(
         new ResponseJson()
-        .setCode(500)
-        .setMessage("登陆失败")
-        .setData(error.toString())
+          .setCode(500)
+          .setMessage("登陆失败")
+          .setData(error.toString())
       );
     }
   },

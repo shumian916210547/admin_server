@@ -3,7 +3,7 @@ const ResponseJson = _require("ResponseJson");
 const moment = require("moment");
 const fs = require('fs')
 const path = require('path')
-//const Parse = require("parse/node");
+
 const cmnController = {
   findAll: async (req, res) => {
     const {

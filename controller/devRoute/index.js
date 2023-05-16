@@ -1,7 +1,7 @@
 const ResponseJson = _require("ResponseJson");
 
 const moment = require("moment");
-//const Parse = require("parse/node");
+
 const devRouteController = {
   findAll: async (req, res) => {
     const {

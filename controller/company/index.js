@@ -1,10 +1,10 @@
 const ResponseJson = _require("ResponseJson");
-//const Parse = require("parse/node");
+
 const companyController = {
   findList: async (req, res) => {
     let {
       isDelete = 'all',
-        companyId
+      companyId
     } = req.query
     const company = new Parse.Query("Company");
     if (String(isDelete) != 'all') {

@@ -1,7 +1,7 @@
 const ResponseJson = _require("ResponseJson");
 
 const moment = require("moment");
-//const Parse = require("parse/node");
+
 const Class_attendance_systemController = {
   student_login: async (req, res) => {
     const { studentID, loginPwd } = req.body;
