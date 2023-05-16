@@ -19,8 +19,8 @@ global.upload = multer({
 })
 global.verify = (params) => {
   for (const key of Object.keys({
-      ...params
-    })) {
+    ...params
+  })) {
     if (typeof (params[key]) === 'object') {
       if (Object.keys(params[key]).length === 0) {
         throw (key + '不能为空')

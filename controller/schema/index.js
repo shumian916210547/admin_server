@@ -1,6 +1,6 @@
 const ResponseJson = _require("ResponseJson");
 //const Parse = require("parse/node");
-const Query = _require("query");
+
 const schemaController = {
   findList: async (req, res) => {
     const {
@@ -50,9 +50,9 @@ const schemaController = {
           if (record && record.id) {
             res.json(
               new ResponseJson()
-              .setCode(200)
-              .setMessage("新建成功")
-              .setData(record)
+                .setCode(200)
+                .setMessage("新建成功")
+                .setData(record)
             );
           }
         });
@@ -108,9 +108,9 @@ const schemaController = {
         schema.update().then((result) => {
           res.json(
             new ResponseJson()
-            .setCode(200)
-            .setMessage("更新成功")
-            .setData(result)
+              .setCode(200)
+              .setMessage("更新成功")
+              .setData(result)
           );
         });
       }

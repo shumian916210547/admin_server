@@ -1,5 +1,5 @@
 const ResponseJson = _require("ResponseJson");
-const Query = _require("query");
+
 const moment = require("moment");
 //const Parse = require("parse/node");
 const devRouteController = {
@@ -30,13 +30,13 @@ const devRouteController = {
     });
     res.json(
       new ResponseJson()
-      .setCode(200)
-      .setMessage("success")
-      .setData({
-        count: total,
-        curPage: pageNum || 1,
-        list: result
-      })
+        .setCode(200)
+        .setMessage("success")
+        .setData({
+          count: total,
+          curPage: pageNum || 1,
+          list: result
+        })
     );
   },
   findList: async (req, res) => {

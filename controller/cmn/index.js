@@ -1,5 +1,5 @@
 const ResponseJson = _require("ResponseJson");
-const Query = _require("query");
+
 const moment = require("moment");
 const fs = require('fs')
 const path = require('path')
@@ -44,13 +44,13 @@ const cmnController = {
 
     res.json(
       new ResponseJson()
-      .setCode(200)
-      .setMessage("success")
-      .setData({
-        count: total,
-        curPage: pageNum || 1,
-        list: result
-      })
+        .setCode(200)
+        .setMessage("success")
+        .setData({
+          count: total,
+          curPage: pageNum || 1,
+          list: result
+        })
     );
   },
 
@@ -150,9 +150,9 @@ const cmnController = {
     } catch (error) {
       res.json(
         new ResponseJson()
-        .setCode(500)
-        .setMessage("添加失败")
-        .setData(error.toString())
+          .setCode(500)
+          .setMessage("添加失败")
+          .setData(error.toString())
       );
     }
   },
@@ -273,16 +273,16 @@ const cmnController = {
       }
       res.json(
         new ResponseJson()
-        .setCode(200)
-        .setMessage("批量导入执行成功")
-        .setData()
+          .setCode(200)
+          .setMessage("批量导入执行成功")
+          .setData()
       );
     } catch (error) {
       res.json(
         new ResponseJson()
-        .setCode(500)
-        .setMessage("批量导入执行失败")
-        .setData(error.toString())
+          .setCode(500)
+          .setMessage("批量导入执行失败")
+          .setData(error.toString())
       );
     }
   },
@@ -296,9 +296,9 @@ const cmnController = {
       "";
     res.json(
       new ResponseJson()
-      .setCode(200)
-      .setMessage("success")
-      .setData(ip)
+        .setCode(200)
+        .setMessage("success")
+        .setData(ip)
     );
   },
 
@@ -343,14 +343,14 @@ const cmnController = {
     }
     res.json(
       new ResponseJson()
-      .setCode(200)
-      .setMessage("上传成功")
-      .setData({
-        url: process.env.ServerHost + '/cmn/readFile/' + newPath,
-        name,
-        size: req.file.size,
-        mimetype: req.file.mimetype
-      })
+        .setCode(200)
+        .setMessage("上传成功")
+        .setData({
+          url: process.env.ServerHost + '/cmn/readFile/' + newPath,
+          name,
+          size: req.file.size,
+          mimetype: req.file.mimetype
+        })
     );
   },
 

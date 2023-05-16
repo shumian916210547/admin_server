@@ -1,5 +1,5 @@
 const ResponseJson = _require("ResponseJson");
-const Query = _require("query");
+
 //const Parse = require("parse/node");
 const moment = require("moment");
 const devModuleController = {
@@ -33,13 +33,13 @@ const devModuleController = {
     });
     res.json(
       new ResponseJson()
-      .setCode(200)
-      .setMessage("success")
-      .setData({
-        count: total,
-        curPage: pageNum || 1,
-        list: result
-      })
+        .setCode(200)
+        .setMessage("success")
+        .setData({
+          count: total,
+          curPage: pageNum || 1,
+          list: result
+        })
     );
   },
   findList: async (req, res) => {
@@ -83,9 +83,9 @@ const devModuleController = {
     const result = await devModule.first();
     res.json(
       new ResponseJson()
-      .setCode(200)
-      .setMessage("success")
-      .setData(result || {})
+        .setCode(200)
+        .setMessage("success")
+        .setData(result || {})
     );
   },
   insertDevModule: async (req, res) => {
