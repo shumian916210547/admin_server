@@ -119,11 +119,12 @@ const userController = {
         };
       }
       let user = (await Parse.User.logIn(username, password)).toJSON();
+      user.company = (await ((new Parse.Query("Company")).equalTo("objectId", user.company.objectId)).first()).toJSON()
       const devModule = new Parse.Query("DevModule");
       devModule.equalTo("user", user.objectId);
       devModule.equalTo("isDelete", false);
       devModule.descending("createdAt");
-      devModule.include(["user", "router.switchs"]);
+      devModule.include(["user", "router.switchs", 'company']);
       user["modules"] = (await devModule.find()).map((module) => {
         module = module.toJSON();
         module.router = module.router.filter((route) => {
