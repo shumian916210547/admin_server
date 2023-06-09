@@ -14,8 +14,8 @@ module.exports = {
       env_production: {
         NODE_ENV: "production",
         npm_package_name: "admin_server",
-        ParseHost: "http://api.shumian.top:4200/parse",
-        ServerHost: "http://api.shumian.top:4200",
+        ParseHost: "http://localhost:3000/parse",
+        ServerHost: "http://localhost:3000",
       },
       log_date_format: "YYYY-MM-DD HH:mm:ss",
     },
