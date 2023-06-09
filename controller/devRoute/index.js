@@ -106,13 +106,13 @@ const devRouteController = {
         msg: error,
       };
     }
-    let Switchs = switchs?.map((item) => {
+    let Switchs = switchs?switchs.map((item) => {
       return {
         __type: "Pointer",
         className: "Switch",
         objectId: item,
       };
-    });
+    }):[];
     const DevRoute = Parse.Object.extend("DevRoute");
     const devRoute = new DevRoute();
     devRoute.set("name", name);
@@ -158,13 +158,13 @@ const devRouteController = {
         msg: error,
       };
     }
-    let Switchs = switchs?.map((item) => {
+    let Switchs = switchs?switchs.map((item) => {
       return {
         __type: "Pointer",
         className: "Switch",
         objectId: item,
       };
-    });
+    }):[];
     const devRoute = new Parse.Query("DevRoute");
     devRoute.equalTo("objectId", objectId);
     const route = await devRoute.first();

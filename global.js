@@ -15,7 +15,7 @@ global.Parse = Parse;
 global.static = "resources/";
 global.today = year + "/" + month + "/" + day
 global.upload = multer({
-  dest: '/resources'
+  dest: 'resources'
 })
 global.verify = (params) => {
   for (const key of Object.keys({

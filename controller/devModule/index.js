@@ -109,13 +109,13 @@ const devModuleController = {
         msg: error,
       };
     }
-    let routes = router?.map((route) => {
+    let routes = router ? router.map((route) => {
       return {
         __type: "Pointer",
         className: "DevRoute",
         objectId: route,
       };
-    });
+    }) : [];
     const DevModule = Parse.Object.extend("DevModule");
     const devModule = new DevModule();
     devModule.set("name", name);
@@ -168,13 +168,13 @@ const devModuleController = {
     devModule.equalTo("objectId", objectId);
     const module = await devModule.first();
     if (module && module.id) {
-      let routes = router?.map((route) => {
+      let routes = router ? router.map((route) => {
         return {
           __type: "Pointer",
           className: "DevRoute",
           objectId: route,
         };
-      });
+      }) : [];
       module.set("name", name || module.get("name"));
       module.set("router", routes || module.get("router"));
       module.set("meta", meta || module.get("meta"));

@@ -10,7 +10,7 @@ class ResponseJson {
   }
 
   setMessage(msg) {
-    this.msg = msg?.toString();
+    this.msg = msg ? msg.toString() : null;
     return this;
   }
 

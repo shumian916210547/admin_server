@@ -10,7 +10,8 @@ module.exports = [
       appId: "shumian0511",
       masterKey: "shumian100329",
       directAccess: false,
-      enforcePrivateUsers: false
+      enforcePrivateUsers: false,
+      allowClientClassCreation:true
     })
   },
   {

@@ -189,7 +189,7 @@ const cmnController = {
           row.set(key, {
             __type: "Pointer",
             className: t_obj.fields[key].targetClass,
-            objectId: params[key]?.objectId || params[key],
+            objectId: params[key] ? params[key].objectId : null || params[key],
           });
         } else {
           if (params[key] != undefined) {
