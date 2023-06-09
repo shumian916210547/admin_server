@@ -89,11 +89,9 @@ const devRouteController = {
       name,
       path,
       option,
-      switchs
-    } = req.body;
-    const {
+      switchs,
       companyId
-    } = req.query
+    } = req.body;
     try {
       verify({
         pagePath,
@@ -106,13 +104,13 @@ const devRouteController = {
         msg: error,
       };
     }
-    let Switchs = switchs?switchs.map((item) => {
+    let Switchs = switchs ? switchs.map((item) => {
       return {
         __type: "Pointer",
         className: "Switch",
         objectId: item,
       };
-    }):[];
+    }) : [];
     const DevRoute = Parse.Object.extend("DevRoute");
     const devRoute = new DevRoute();
     devRoute.set("name", name);
@@ -121,7 +119,7 @@ const devRouteController = {
     devRoute.set("isDelete", false);
     devRoute.set("option", option);
     devRoute.set("switchs", Switchs || []);
-    devRoute.set({
+    devRoute.set('company', {
       __type: "Pointer",
       className: "Company",
       objectId: companyId
@@ -158,13 +156,13 @@ const devRouteController = {
         msg: error,
       };
     }
-    let Switchs = switchs?switchs.map((item) => {
+    let Switchs = switchs ? switchs.map((item) => {
       return {
         __type: "Pointer",
         className: "Switch",
         objectId: item,
       };
-    }):[];
+    }) : [];
     const devRoute = new Parse.Query("DevRoute");
     devRoute.equalTo("objectId", objectId);
     const route = await devRoute.first();

@@ -93,11 +93,9 @@ const devModuleController = {
       name,
       router,
       meta,
-      user
-    } = req.body;
-    const {
+      user,
       companyId
-    } = req.query
+    } = req.body;
     try {
       verify({
         name,
