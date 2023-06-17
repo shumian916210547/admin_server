@@ -1,9 +1,11 @@
 const path = require("path");
 const Parse = require("parse/node");
+const jwt = require('./jwt/index')
 const multer = require("multer");
 global._require = (filePath) => {
   return require(path.join(process.cwd(), filePath));
 };
+global.jwt = jwt
 const date = new Date();
 global.year = date.getUTCFullYear();
 global.month = date.getUTCMonth() + 1;

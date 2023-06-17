@@ -94,7 +94,7 @@ const devModuleController = {
       router,
       meta,
       user,
-      companyId
+      companyId, path
     } = req.body;
     try {
       verify({
@@ -119,6 +119,7 @@ const devModuleController = {
     devModule.set("name", name);
     devModule.set("isDelete", false);
     devModule.set("meta", meta);
+    devModule.set("path", path);
     devModule.set("router", routes || []);
     devModule.set("user", {
       __type: "Pointer",
@@ -147,9 +148,7 @@ const devModuleController = {
       objectId,
       name,
       router,
-      meta,
-      user
-    } = req.body;
+      meta, user, path } = req.body;
     try {
       verify({
         objectId,
@@ -162,6 +161,8 @@ const devModuleController = {
         msg: error,
       };
     }
+
+    console.log(path);
     const devModule = new Parse.Query("DevModule");
     devModule.equalTo("objectId", objectId);
     const module = await devModule.first();
@@ -176,6 +177,7 @@ const devModuleController = {
       module.set("name", name || module.get("name"));
       module.set("router", routes || module.get("router"));
       module.set("meta", meta || module.get("meta"));
+      module.set("path", path || module.get("path"));
       module.set(
         "user", {
           __type: "Pointer",

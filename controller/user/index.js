@@ -1,5 +1,4 @@
 const ResponseJson = _require("ResponseJson");
-
 const userController = {
   signUp: async (req, res) => {
     const {
@@ -133,7 +132,7 @@ const userController = {
         return module;
       });
       res.json(
-        new ResponseJson().setCode(200).setMessage("登陆成功").setData(user)
+        new ResponseJson().setCode(200).setMessage("登陆成功").setData(Object.assign({}, user, { token: jwt.sign({ _id: user.objectId }) }))
       );
     } catch (error) {
       res.json(

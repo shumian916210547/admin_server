@@ -3,25 +3,25 @@ const cmnRouter = express.Router();
 const cmnController = _require("controller/cmn/index");
 
 /* 分页列表 */
-cmnRouter.get("/findAll", cmnController.findAll);
+cmnRouter.get("/findAll", jwt.verify, cmnController.findAll);
 
 /* 所有列表 */
-cmnRouter.get("/findList", cmnController.findList);
+cmnRouter.get("/findList", jwt.verify, cmnController.findList);
 
 /* 删除 */
-cmnRouter.delete("/removeById", cmnController.removeById);
+cmnRouter.delete("/removeById", jwt.verify, cmnController.removeById);
 
 /* 插入 */
-cmnRouter.post("/insert", cmnController.insert);
+cmnRouter.post("/insert", jwt.verify, cmnController.insert);
 
 /* 批量插入 */
-cmnRouter.post("/insertList", cmnController.insertList);
+cmnRouter.post("/insertList", jwt.verify, cmnController.insertList);
 
 /* 更新 */
-cmnRouter.put("/updateById", cmnController.updateById);
+cmnRouter.put("/updateById", jwt.verify, cmnController.updateById);
 
-/* 更新 */
-cmnRouter.get("/getClientIP", cmnController.getClientIP);
+/* 获取ip */
+cmnRouter.get("/getClientIP", jwt.verify, cmnController.getClientIP);
 
 /* 上传文件 */
 cmnRouter.post("/uploadFile", upload.single('file'), cmnController.uploadFile);
