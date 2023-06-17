@@ -21,7 +21,7 @@ cmnRouter.post("/insertList", jwt.verify, cmnController.insertList);
 cmnRouter.put("/updateById", jwt.verify, cmnController.updateById);
 
 /* 获取ip */
-cmnRouter.get("/getClientIP", jwt.verify, cmnController.getClientIP);
+cmnRouter.get("/getClientIP", cmnController.getClientIP);
 
 /* 上传文件 */
 cmnRouter.post("/uploadFile", upload.single('file'), cmnController.uploadFile);

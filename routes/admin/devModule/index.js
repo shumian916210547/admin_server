@@ -3,21 +3,21 @@ const devModuleRouter = express.Router();
 const devModuleController = _require("controller/devModule/index");
 
 /* 模块列表 */
-devModuleRouter.get("/findAll", devModuleController.findAll);
+devModuleRouter.get("/findAll", jwt.verify, devModuleController.findAll);
 
 /* 所有模块列表 */
-devModuleRouter.get("/findList", devModuleController.findList);
+devModuleRouter.get("/findList", jwt.verify, devModuleController.findList);
 
 /* 查询模块 */
-devModuleRouter.get("/findById", devModuleController.findById);
+devModuleRouter.get("/findById", jwt.verify, devModuleController.findById);
 
 /* 新建模块 */
-devModuleRouter.post("/insertDevModule", devModuleController.insertDevModule);
+devModuleRouter.post("/insertDevModule", jwt.verify, devModuleController.insertDevModule);
 
 /* 修改模块信息 */
-devModuleRouter.put("/updateById", devModuleController.updateById);
+devModuleRouter.put("/updateById", jwt.verify, devModuleController.updateById);
 
 /* 删除模块 */
-devModuleRouter.delete("/removeById", devModuleController.removeById);
+devModuleRouter.delete("/removeById", jwt.verify, devModuleController.removeById);
 
 module.exports = devModuleRouter;

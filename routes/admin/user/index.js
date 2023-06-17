@@ -9,6 +9,6 @@ userRouter.post("/signUp", userController.signUp);
 userRouter.post("/loggingIn", userController.loggingIn);
 
 /* 删除 */
-userRouter.delete("/removeUser", userController.removeUser)
+userRouter.delete("/removeUser", jwt.verify, userController.removeUser)
 
 module.exports = userRouter;
