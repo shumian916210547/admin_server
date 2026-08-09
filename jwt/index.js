@@ -1,34 +1,30 @@
-const jwt = require('jsonwebtoken');
-const secretkey = 'shumianadmin'; //密钥
+const jwt = require("jsonwebtoken");
+const { config } = require("../config/env");
 
-// 生成token
-const sign = (data = {}) => {
-    return jwt.sign(data, secretkey, {
-        expiresIn: 60 * 60,
-    });
+const signingOptions = {
+  algorithm: "HS256",
+  expiresIn: config.auth.ttlSeconds,
+  issuer: "shumian-admin-api",
+  audience: "shumian-admin-web",
 };
 
-// 验证token
+const sign = (data = {}) => jwt.sign(data, config.auth.jwtSecret, signingOptions);
+
 const verify = (req, res, next) => {
-    let authorization = req.headers.authorization || req.body.token || req.query.token || '';
-    let token = '';
-    if (authorization.includes('Bearer')) {
-        token = authorization.replace('Bearer ', '');
-    } else {
-        token = authorization;
-    }
+  const authorization = req.headers.authorization || req.body?.token || req.query?.token || "";
+  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : authorization;
 
-    jwt.verify(token, secretkey, (error, data) => {
-        if (error) {
-            res.json({ code: 1, msg: 'token验证失败' });
-        } else {
-            req._id = data._id;
-            next();
-        }
+  try {
+    const data = jwt.verify(token, config.auth.jwtSecret, {
+      algorithms: ["HS256"],
+      issuer: signingOptions.issuer,
+      audience: signingOptions.audience,
     });
+    req._id = data._id || data.sub;
+    next();
+  } catch {
+    res.status(401).json({ code: 401, msg: "token verification failed" });
+  }
 };
 
-module.exports = {
-    sign,
-    verify,
-};
+module.exports = { sign, verify };

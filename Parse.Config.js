@@ -1,31 +1,6 @@
-const ParseDashboard = require("parse-dashboard");
-const ParseServer = require("parse-server").ParseServer;
+// Compatibility export for integrations that still import this module.
+// Parse and its dashboard now live on an internal-only listener; the public
+// application exposes the authenticated BFF under /api instead.
+const { createParseServer } = require("./services/parse-runtime");
 
-module.exports = [
-  {
-    path: "/parse",
-    component: new ParseServer({
-      databaseURI: `postgres://postgres:100329@localhost:5432/postgres`,
-      cloud: "./cloud.js",
-      appId: "shumian0511",
-      masterKey: "shumian100329",
-      directAccess: false,
-      enforcePrivateUsers: false,
-      allowClientClassCreation:true
-    })
-  },
-  {
-    path: "/dashboard",
-    component: new ParseDashboard({
-      apps: [{
-        serverURL: process.env.ParseHost || "http://localhost:3000/parse",
-        appId: "shumian0511",
-        masterKey: "shumian100329",
-        appName: process.env.npm_package_name,
-        supportedPushLocales: ["cn", "en", "ru", "fr"]
-      }],
-    }, {
-      allowInsecureHTTP: false
-    })
-  },
-]
+module.exports = { createParseServer };
