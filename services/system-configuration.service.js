@@ -341,6 +341,24 @@ async function ensureSystemConfiguration(auth) {
     else if (ensured.changed || metadataFields.changed) result.updated.push(`Schema:${definition.name}`);
   }
 
+  const homeRoute = await ensureRecord("Route", "system.home.page", company, {
+    name: "首页",
+    path: "home",
+    rank: 1,
+    menu: true,
+    pageComponent: "/home",
+    targetClass: "Dashboard",
+    remark: "企业工作台首页入口",
+  });
+  const homeModule = await ensureRecord("Module", "system.home", company, {
+    name: "首页",
+    path: "home",
+    rank: 1,
+    menu: true,
+    icon: "HomeOutlined",
+    pageComponent: "/home",
+    remark: "静态首页的页面权限元数据",
+  });
   const moduleRoute = await ensureRecord("Route", "system.module", company, {
     name: "模块管理",
     path: "module",
@@ -393,6 +411,15 @@ async function ensureSystemConfiguration(auth) {
     targetClass: "Role",
     remark: "配置岗位可访问页面及页面内按钮权限",
   });
+  const onlineMemberRoute = await ensureRecord("Route", "system.online-member", company, {
+    name: "在线成员",
+    path: "online-member",
+    rank: 6,
+    menu: true,
+    pageComponent: "/system/online-member/index",
+    targetClass: "_User",
+    remark: "查看在线成员并执行强制下线与账号冻结",
+  });
   const systemModule = await ensureRecord("Module", "system.management", company, {
     name: "系统管理",
     path: "system",
@@ -401,13 +428,19 @@ async function ensureSystemConfiguration(auth) {
     icon: "SettingOutlined",
     remark: "仅系统管理员可维护的基础配置",
   });
+  const homeLinksChanged = await ensurePointers(homeModule.record, "routes", [homeRoute.record]);
   const linksChanged = await ensurePointers(systemModule.record, "routes", [
     moduleRoute.record,
     schemaRoute.record,
     organizationRoute.record,
     memberRoute.record,
     positionRoute.record,
+    onlineMemberRoute.record,
   ]);
+  if (homeRoute.created) result.created.push("Route:home");
+  else if (homeRoute.changed) result.updated.push("Route:home");
+  if (homeModule.created) result.created.push("Module:home");
+  else if (homeModule.changed || homeLinksChanged) result.updated.push("Module:home");
   if (moduleRoute.created) result.created.push("Route:module");
   else if (moduleRoute.changed) result.updated.push("Route:module");
   if (schemaRoute.created) result.created.push("Route:table");
@@ -418,6 +451,8 @@ async function ensureSystemConfiguration(auth) {
   else if (memberRoute.changed) result.updated.push("Route:member");
   if (positionRoute.created) result.created.push("Route:position");
   else if (positionRoute.changed) result.updated.push("Route:position");
+  if (onlineMemberRoute.created) result.created.push("Route:online-member");
+  else if (onlineMemberRoute.changed) result.updated.push("Route:online-member");
   if (systemModule.created) result.created.push("Module:system");
   else if (systemModule.changed || linksChanged) result.updated.push("Module:system");
   clearSchemaCache();

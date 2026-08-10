@@ -1,5 +1,6 @@
 const { readSession, renewSessionCookie } = require("../services/auth.service");
 const { getAuthContext } = require("../services/parse-data.service");
+const { validateAndTouchAdminSession } = require("../services/admin-session.service");
 
 /**
  * 校验 HttpOnly 会话、加载服务端认证上下文，并为每次有效请求滑动续期 Cookie。
@@ -13,6 +14,7 @@ async function authenticate(req, res, next) {
   try {
     const session = readSession(req);
     const context = await getAuthContext(session.sub);
+    await validateAndTouchAdminSession(session, context, req);
     req.auth = { ...context, csrf: session.csrf, sessionId: session.jti };
     renewSessionCookie(res, session);
     next();

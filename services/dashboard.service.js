@@ -159,7 +159,7 @@ function calculateConsecutiveActiveDays(activeDayKeys, now) {
 /**
  * 获取当前用户可见的登录统计。接口只返回汇总值，不返回其他用户、IP 或会话凭据。
  * @param {{company: Parse.Object, user: Parse.Object, sessionId: string}} auth 认证中间件提供的可信会话上下文。
- * @returns {Promise<{totalLogins: number, loginToday: number, activeDaysLast30: number, consecutiveActiveDays: number, currentSessionStartedAt: string | null, lastLoginAt: string | null, weeklyActivity: Array<{date: string, label: string, count: number}>}>} 首页仪表盘所需的脱敏统计数据。
+ * @returns {Promise<{totalLogins: number, loginToday: number, activeDaysLast30: number, consecutiveActiveDays: number, currentSessionStartedAt: string | null, lastLoginAt: string | null, weeklyActivity: Array<{date: string, label: string, count: number}>, loginDays: string[]}>} 首页仪表盘所需的脱敏统计数据。
  */
 async function getDashboardOverview(auth) {
   await ensureLoginActivitySchema();
@@ -177,6 +177,7 @@ async function getDashboardOverview(auth) {
   const currentSession = activities.find((activity) => activity.get("sessionId") === auth.sessionId);
   const latestActivity = activities[0];
   const weeklyActivity = buildWeeklyActivity(activities, now);
+  const loginDays = [...new Set(activities.map((activity) => toUtcDayKey(activity.createdAt)))].sort();
 
   activeDayKeys.add(currentDayKey);
   return {
@@ -187,6 +188,7 @@ async function getDashboardOverview(auth) {
     currentSessionStartedAt: currentSession?.createdAt?.toISOString?.() || null,
     lastLoginAt: latestActivity?.createdAt?.toISOString?.() || null,
     weeklyActivity,
+    loginDays,
   };
 }
 

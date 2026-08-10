@@ -11,6 +11,7 @@ Shumian Vue Admin 的后端服务。当前运行架构是 **Express BFF + 内网
 ## 当前能力
 
 - 安全登录、会话恢复与退出：HttpOnly、SameSite=Strict Cookie，写操作校验 CSRF。
+- 在线成员会话治理：私有 `AdminSession` 记录设备摘要、心跳和滑动过期时间；管理员可强制撤销目标成员全部会话或按分钟冻结账号。
 - 个人工作台统计：成功登录后以私有 `LoginActivity` 记录当前用户活动，BFF 仅返回本人登录趋势、活跃天数和会话起点汇总。
 - Company 租户隔离：服务端从会话解析用户、公司和角色，不信任客户端传入的 `companyId`。
 - RBAC：管理员与普通岗位动作权限由 `Role`、`Route`、`AllotPermission` 共同约束；岗位可以按页面分别配置按钮权限。
@@ -66,8 +67,11 @@ npm run seed:initial
 | `POST` | `/api/auth/login` | 登录并建立会话。 |
 | `GET` | `/api/auth/session` | 恢复会话。 |
 | `POST` | `/api/auth/logout` | 退出登录。 |
-| `GET` | `/api/dashboard/overview` | 获取当前账号自身的登录与活跃统计。 |
-| `GET/POST/PUT/DELETE` | `/api/organization/...` | 系统管理员维护组织树、成员账号、多个关联组织与多个组织数据范围；成员查询使用服务端分页与账号检索。 |
+| `GET` | `/api/dashboard/overview` | 获取当前账号自身的登录与活跃统计，包含有登录记录的自然日。 |
+| `GET` | `/api/online-members` | 系统管理员查看当前企业在线会话的成员、手机号、时间和设备摘要。 |
+| `POST` | `/api/online-members/:userId/force-logout` | 系统管理员撤销目标成员全部管理端会话，需要 CSRF。 |
+| `POST` | `/api/online-members/:userId/freeze` | 系统管理员按分钟冻结账号并撤销其现有会话，需要 CSRF。 |
+| `GET/POST/PUT/DELETE` | `/api/organization/...` | 系统管理员维护组织树、成员账号、多个关联组织与多个组织数据范围；成员查询使用服务端分页、账号检索和直属/后代组织筛选。 |
 | `GET/POST/PUT/DELETE` | `/api/positions...` | 系统管理员维护岗位可访问页面和逐页按钮权限。 |
 | `POST` | `/api/system/ensure-configuration` | 为当前系统管理员所在企业幂等补齐模块、表格、组织、成员和岗位基础配置。 |
 | `POST` | `/api/data/query` | 受授权的业务数据查询。 |

@@ -22,6 +22,15 @@ const MAX_POSITION_PAGES = 200;
 const MAX_CONFIGURATION_RECORDS = 10_000;
 /** Parse 查询的单批记录数量；用于加载中大型企业的系统配置。 */
 const QUERY_BATCH_SIZE = 1_000;
+/** 岗位目录必须存在且挂载到系统管理 Module 的基础 Route systemKey。 */
+const REQUIRED_SYSTEM_ROUTE_KEYS = Object.freeze([
+  "system.module",
+  "system.schema",
+  "system.organization",
+  "system.member",
+  "system.position",
+  "system.online-member",
+]);
 /** 可在页面内分配的标准按钮权限；必须与 parse-data.service 的服务端校验保持一致。 */
 const BUTTON_PERMISSION_CODES = Object.freeze([
   "permission:query",
@@ -34,8 +43,66 @@ const BUTTON_PERMISSION_CODES = Object.freeze([
   "permission:insertField",
   "permission:editField",
   "permission:removeField",
+  "permission:forceLogout",
+  "permission:freeze",
 ]);
 const BUTTON_PERMISSION_SET = new Set(BUTTON_PERMISSION_CODES);
+/**
+ * 系统页面实际使用的按钮权限白名单；query 是页面数据读取的基础权限，其余 Code 对应页面中的受控操作。
+ * 动态 Wrapper 页面使用 DEFAULT_PAGE_BUTTON_PERMISSION_CODES，未知自定义组件只开放 query，避免凭空分配按钮。
+ */
+const PAGE_BUTTON_PERMISSION_CODES = Object.freeze({
+  "system.home.page": Object.freeze(["permission:query"]),
+  "system.module": Object.freeze([
+    "permission:query",
+    "permission:reset",
+    "permission:insert",
+    "permission:preview",
+    "permission:insertChildren",
+    "permission:edit",
+    "permission:remove",
+  ]),
+  "system.schema": Object.freeze([
+    "permission:query",
+    "permission:reset",
+    "permission:insert",
+    "permission:insertField",
+    "permission:editField",
+    "permission:removeField",
+    "permission:remove",
+  ]),
+  "system.organization": Object.freeze([
+    "permission:query",
+    "permission:insert",
+    "permission:insertChildren",
+    "permission:edit",
+    "permission:remove",
+  ]),
+  "system.member": Object.freeze(["permission:query", "permission:insert", "permission:edit"]),
+  "system.position": Object.freeze(["permission:query", "permission:insert", "permission:edit", "permission:remove"]),
+  "system.online-member": Object.freeze(["permission:query", "permission:forceLogout", "permission:freeze"]),
+});
+/** 旧租户可能缺少 systemKey，按受控系统页面组件路径提供同等的按钮权限映射。 */
+const PAGE_BUTTON_COMPONENT_KEYS = Object.freeze({
+  "/home": "system.home.page",
+  "/system/module/index": "system.module",
+  "/system/table/index": "system.schema",
+  "/system/organization/index": "system.organization",
+  "/system/member/index": "system.member",
+  "/system/position/index": "system.position",
+  "/system/online-member/index": "system.online-member",
+});
+/** 动态 CommonPage/Wrapper 页面当前由通用表格真实渲染的按钮权限。 */
+const DEFAULT_PAGE_BUTTON_PERMISSION_CODES = Object.freeze([
+  "permission:query",
+  "permission:reset",
+  "permission:insert",
+  "permission:preview",
+  "permission:edit",
+  "permission:remove",
+]);
+/** 未声明页面组件的自定义路由只保留页面读取权限，避免把不存在的操作暴露给岗位管理员。 */
+const FALLBACK_PAGE_BUTTON_PERMISSION_CODES = Object.freeze(["permission:query"]);
 
 /**
  * 将可信类名与对象标识转换为 Parse Pointer JSON。
@@ -245,11 +312,31 @@ function normalizePositionInput(input, editing) {
 }
 
 /**
- * 从 Module 与 Route 记录生成可用于岗位页面的业务页面选项，并建立页面所属模块索引。
- * 平台基础路由固定只对系统管理员开放，因此不会出现在可下放给普通岗位的列表中。
+ * 根据 Route 的系统标识或页面组件确定该页面真实可分配的按钮权限。
+ * @param {Parse.Object} route 当前企业的 Route 记录。
+ * @returns {string[]} 当前页面可用且已按标准权限顺序排列的按钮 Code 副本。
+ */
+function getPageButtonPermissions(route) {
+  const systemKey = route.get("systemKey");
+  const componentKey = PAGE_BUTTON_COMPONENT_KEYS[route.get("pageComponent")];
+  const pageKey =
+    typeof systemKey === "string" && Object.prototype.hasOwnProperty.call(PAGE_BUTTON_PERMISSION_CODES, systemKey)
+      ? systemKey
+      : componentKey;
+  if (pageKey && Object.prototype.hasOwnProperty.call(PAGE_BUTTON_PERMISSION_CODES, pageKey)) {
+    return [...PAGE_BUTTON_PERMISSION_CODES[pageKey]];
+  }
+  if (route.get("pageComponent") === "/Wrapper") return [...DEFAULT_PAGE_BUTTON_PERMISSION_CODES];
+  return [...FALLBACK_PAGE_BUTTON_PERMISSION_CODES];
+}
+
+/**
+ * 从 Module 与 Route 记录生成岗位可配置的完整页面目录，并建立页面所属模块索引。
+ * 系统管理页面同样是页面级权限的一部分，不能因为 systemKey 前缀而从目录中排除；最终能否访问仍由
+ * Role.module、AllotPermission 以及服务端数据操作授权共同决定。
  * @param {Parse.Object[]} modules 当前 Company 的模块记录，需包含 routes 关联。
  * @param {Parse.Object[]} routes 当前 Company 的 Route 记录。
- * @returns {{routeOptions: Array<{objectId: string, name: string, path: string, targetClass: string, moduleId: string | null, moduleName: string}>, routeById: Map<string, Parse.Object>, moduleByRouteId: Map<string, Parse.Object>}} 页面配置所需的安全索引。
+ * @returns {{routeOptions: Array<{objectId: string, name: string, path: string, targetClass: string, moduleId: string | null, moduleName: string, availablePermissions: string[]}>, routeById: Map<string, Parse.Object>, moduleByRouteId: Map<string, Parse.Object>, buttonPermissionsByRouteId: Map<string, string[]>}} 页面配置所需的安全索引。
  */
 function buildRouteCatalog(modules, routes) {
   const moduleByRouteId = new Map();
@@ -261,22 +348,21 @@ function buildRouteCatalog(modules, routes) {
   }
 
   const routeById = new Map();
-  const routeOptions = routes
-    .filter((route) => !String(route.get("systemKey") || "").startsWith("system."))
-    .map((route) => {
-      const parentModule = moduleByRouteId.get(route.id);
-      routeById.set(route.id, route);
-      return {
-        objectId: route.id,
-        name: route.get("name") || "未命名页面",
-        path: route.get("path") || "",
-        targetClass: route.get("targetClass") || "",
-        moduleId: parentModule?.id || null,
-        moduleName: parentModule?.get("name") || "未分组页面",
-        rank: Number(route.get("rank")) || 0,
-        moduleRank: Number(parentModule?.get("rank")) || 0,
-      };
-    })
+  const routeOptions = routes.map((route) => {
+    const parentModule = moduleByRouteId.get(route.id);
+    routeById.set(route.id, route);
+    return {
+      objectId: route.id,
+      name: route.get("name") || "未命名页面",
+      path: route.get("path") || "",
+      targetClass: route.get("targetClass") || "",
+      moduleId: parentModule?.id || null,
+      moduleName: parentModule?.get("name") || "未分组页面",
+      availablePermissions: getPageButtonPermissions(route),
+      rank: Number(route.get("rank")) || 0,
+      moduleRank: Number(parentModule?.get("rank")) || 0,
+    };
+  })
     .sort(
       (left, right) =>
         left.moduleRank - right.moduleRank ||
@@ -285,19 +371,63 @@ function buildRouteCatalog(modules, routes) {
         left.name.localeCompare(right.name, "zh-CN")
     )
     .map(({ rank, moduleRank, ...route }) => route);
-  return { routeOptions, routeById, moduleByRouteId };
+  return {
+    routeOptions,
+    routeById,
+    moduleByRouteId,
+    buttonPermissionsByRouteId: new Map(
+      routeOptions.map((route) => [route.objectId, route.availablePermissions])
+    ),
+  };
 }
 
 /**
- * 验证页面授权仅指向当前 Company 的可下放业务页面，不能把系统管理页或其他租户页面写入岗位。
- * @param {Array<{routeId: string, permissions: string[]}>} pagePermissions 已规范化的逐页授权数据。
- * @param {Map<string, Parse.Object>} routeById 当前 Company 可配置页面索引。
- * @returns {void} 所有路由均有效时正常返回。
- * @throws {import("../lib/http-error").HttpError} 页面不存在、不是业务页或不属于当前企业时抛出 400。
+ * 检查当前企业的系统页面目录是否完整，供岗位管理接口决定是否触发幂等配置修复。
+ * 除了检查 Route 记录，还会检查系统 Module 的 routes 关联，避免路由存在但未挂载时仍然返回不完整目录。
+ * @param {Parse.Object[]} modules 当前 Company 的 Module 记录，需包含 routes 关联。
+ * @param {Parse.Object[]} routes 当前 Company 的 Route 记录。
+ * @returns {boolean} 缺少基础系统 Route、首页 Route/Module 或关联不完整时返回 true。
  */
-function assertValidPagePermissions(pagePermissions, routeById) {
+function needsSystemConfigurationRepair(modules, routes) {
+  const routesBySystemKey = new Map(
+    routes
+      .map((route) => [route.get("systemKey"), route])
+      .filter(([systemKey]) => typeof systemKey === "string" && systemKey)
+  );
+  const systemModule = modules.find((module) => module.get("systemKey") === "system.management");
+  const linkedSystemRouteIds = new Set((systemModule?.get("routes") || []).map(pointerId).filter(Boolean));
+  const hasAllSystemRoutes = REQUIRED_SYSTEM_ROUTE_KEYS.every((systemKey) => {
+    const route = routesBySystemKey.get(systemKey);
+    return Boolean(route?.id && linkedSystemRouteIds.has(route.id));
+  });
+  const organizationRoute = routesBySystemKey.get("system.organization");
+  const homeModule = modules.find((module) => module.get("systemKey") === "system.home");
+  const homeRoute = routesBySystemKey.get("system.home.page");
+  const linkedHomeRouteIds = new Set((homeModule?.get("routes") || []).map(pointerId).filter(Boolean));
+  return (
+    !hasAllSystemRoutes ||
+    organizationRoute?.get("name") === "组织与成员" ||
+    !homeModule?.id ||
+    !homeRoute?.id ||
+    !linkedHomeRouteIds.has(homeRoute.id)
+  );
+}
+
+/**
+ * 验证页面授权仅指向当前 Company 的页面目录，不能把其他租户页面写入岗位。
+ * @param {Array<{routeId: string, permissions: string[]}>} pagePermissions 已规范化的逐页授权数据。
+ * @param {{routeById: Map<string, Parse.Object>, buttonPermissionsByRouteId: Map<string, string[]>}} catalog 当前 Company 可配置页面及其按钮权限索引。
+ * @returns {void} 所有路由均有效时正常返回。
+ * @throws {import("../lib/http-error").HttpError} 页面不存在、不属于当前企业或包含该页面不存在的按钮时抛出 400。
+ */
+function assertValidPagePermissions(pagePermissions, catalog) {
   for (const page of pagePermissions) {
-    if (!routeById.has(page.routeId)) throw badRequest("所选页面不存在、不是可下放的业务页面或不属于当前企业");
+    if (!catalog.routeById.has(page.routeId)) throw badRequest("所选页面不存在或不属于当前企业");
+    const availablePermissions = catalog.buttonPermissionsByRouteId.get(page.routeId) || [];
+    if (page.permissions.some((permission) => !availablePermissions.includes(permission))) {
+      const routeName = catalog.routeById.get(page.routeId)?.get("name") || "当前页面";
+      throw badRequest(`${routeName}包含不存在的按钮权限，请按页面实际按钮重新配置`);
+    }
   }
 }
 
@@ -306,9 +436,10 @@ function assertValidPagePermissions(pagePermissions, routeById) {
  * @param {Parse.Object[]} permissionRecords 当前 Company 全部 AllotPermission 记录。
  * @param {string} roleId 目标岗位 Role objectId。
  * @param {Set<string>} allowedRouteIds 当前岗位 Role.module 中允许访问的 Route objectId 集合。
+ * @param {Map<string, string[]>} buttonPermissionsByRouteId 当前页面实际可用的按钮权限索引。
  * @returns {Array<{routeId: string, permissions: string[]}>} 仅包含当前岗位可访问页面的逐页按钮权限。
  */
-function collectPagePermissions(permissionRecords, roleId, allowedRouteIds) {
+function collectPagePermissions(permissionRecords, roleId, allowedRouteIds, buttonPermissionsByRouteId) {
   const permissionsByRouteId = new Map();
   const relevant = permissionRecords.filter((record) => pointerId(record.get("role")) === roleId);
   const managed = relevant.filter((record) => record.get("positionManaged") === true);
@@ -321,9 +452,12 @@ function collectPagePermissions(permissionRecords, roleId, allowedRouteIds) {
       const routeId = pointerId(route);
       if (!routeId || !allowedRouteIds.has(routeId)) continue;
       const pagePermissions = Array.isArray(routePermissions?.[routeId]) ? routePermissions[routeId] : fallbackPermissions;
+      const availablePermissions = buttonPermissionsByRouteId.get(routeId) || BUTTON_PERMISSION_CODES;
       permissionsByRouteId.set(
         routeId,
-        BUTTON_PERMISSION_CODES.filter((permission) => pagePermissions.includes(permission))
+        BUTTON_PERMISSION_CODES.filter(
+          (permission) => availablePermissions.includes(permission) && pagePermissions.includes(permission)
+        )
       );
     }
   }
@@ -337,10 +471,11 @@ function collectPagePermissions(permissionRecords, roleId, allowedRouteIds) {
  * 将 Role 记录转换为岗位管理页面可用的脱敏 DTO。
  * @param {Parse.Object} role 当前 Company 的 Role 记录。
  * @param {Parse.Object[]} permissionRecords 当前 Company 的 AllotPermission 记录。
- * @param {Set<string>} configuredRouteIds 当前 Company 可下放页面的 Route objectId 集合。
+ * @param {Set<string>} configuredRouteIds 当前 Company 可配置页面的 Route objectId 集合。
  * @returns {{objectId: string, name: string, pagePermissions: Array<{routeId: string, permissions: string[]}>, positionManaged: boolean}} 岗位安全 DTO。
  */
-function positionDto(role, permissionRecords, configuredRouteIds) {
+// buttonPermissionsByRouteId 按页面索引实际可分配的按钮权限，避免把其他页面的 Code 返回给编辑器。
+function positionDto(role, permissionRecords, configuredRouteIds, buttonPermissionsByRouteId) {
   const allowedRouteIds = new Set(
     (role.get("module") || [])
       .map(pointerId)
@@ -349,15 +484,15 @@ function positionDto(role, permissionRecords, configuredRouteIds) {
   return {
     objectId: role.id,
     name: role.get("name") || "未命名岗位",
-    pagePermissions: collectPagePermissions(permissionRecords, role.id, allowedRouteIds),
+    pagePermissions: collectPagePermissions(permissionRecords, role.id, allowedRouteIds, buttonPermissionsByRouteId),
     positionManaged: role.get("positionManaged") === true,
   };
 }
 
 /**
- * 查询岗位列表、可下放业务页面以及逐页按钮权限，用于岗位管理页首次加载或刷新。
+ * 查询岗位列表、完整页面目录以及逐页按钮权限，用于岗位管理页首次加载或刷新。
  * @param {{companyId: string, isAdmin?: boolean}} auth authenticate 中间件提供的可信认证上下文。
- * @returns {Promise<{positions: Array<Record<string, unknown>>, routes: Array<Record<string, unknown>>, buttonPermissions: string[]}>} 岗位、页面和按钮权限配置数据。
+ * @returns {Promise<{positions: Array<Record<string, unknown>>, routes: Array<{objectId: string, name: string, path: string, targetClass: string, moduleId: string | null, moduleName: string, availablePermissions: string[]}>, buttonPermissions: string[], needsSystemConfigurationRepair: boolean}>} 岗位、页面及页面可用按钮权限配置数据和系统目录修复标记。
  * @throws {import("../lib/http-error").HttpError} 非系统管理员时抛出 403；配置读取失败时向调用方抛出。
  */
 async function getPositionOverview(auth) {
@@ -374,10 +509,11 @@ async function getPositionOverview(auth) {
   return {
     positions: roles
       .filter((role) => !isSystemRole(role))
-      .map((role) => positionDto(role, permissions, configuredRouteIds))
+      .map((role) => positionDto(role, permissions, configuredRouteIds, catalog.buttonPermissionsByRouteId))
       .sort((left, right) => left.name.localeCompare(right.name, "zh-CN")),
     routes: catalog.routeOptions,
     buttonPermissions: [...BUTTON_PERMISSION_CODES],
+    needsSystemConfigurationRepair: needsSystemConfigurationRepair(modules, routes),
   };
 }
 
@@ -418,7 +554,7 @@ async function assertUniquePositionName(auth, name, excludedId) {
 /**
  * 读取当前租户的页面目录，为岗位保存过程提供受控的 Route 与 Module Pointer。
  * @param {{companyId: string}} auth 可信认证上下文。
- * @returns {Promise<{routeById: Map<string, Parse.Object>, moduleByRouteId: Map<string, Parse.Object>}>} 当前 Company 可下放业务页面与其模块索引。
+ * @returns {Promise<{routeById: Map<string, Parse.Object>, moduleByRouteId: Map<string, Parse.Object>, buttonPermissionsByRouteId: Map<string, string[]>}>} 当前 Company 可配置页面、模块和按钮权限索引。
  * @throws {Error} Parse 配置读取失败时向调用方抛出。
  */
 async function loadPositionRouteCatalog(auth) {
@@ -431,6 +567,9 @@ async function loadPositionRouteCatalog(auth) {
   return {
     routeById: new Map([...catalog.routeById.entries()].filter(([routeId]) => allowedRouteIds.has(routeId))),
     moduleByRouteId: catalog.moduleByRouteId,
+    buttonPermissionsByRouteId: new Map(
+      [...catalog.buttonPermissionsByRouteId.entries()].filter(([routeId]) => allowedRouteIds.has(routeId))
+    ),
   };
 }
 
@@ -440,12 +579,12 @@ async function loadPositionRouteCatalog(auth) {
  * @param {{companyId: string}} auth 可信认证上下文。
  * @param {Parse.Object} role 已保存的可维护 Role 记录。
  * @param {Array<{routeId: string, permissions: string[]}>} pagePermissions 已验证的逐页授权配置。
- * @param {{routeById: Map<string, Parse.Object>, moduleByRouteId: Map<string, Parse.Object>}} catalog 当前租户受控页面目录。
+ * @param {{routeById: Map<string, Parse.Object>, moduleByRouteId: Map<string, Parse.Object>, buttonPermissionsByRouteId: Map<string, string[]>}} catalog 当前租户受控页面目录及按钮权限索引。
  * @returns {Promise<void>} Role 和 AllotPermission 保存完成后兑现。
  * @throws {Error} Parse 写入失败时向调用方抛出；调用方会在统一 API 错误路径中处理。
  */
 async function savePositionPermissions(auth, role, pagePermissions, catalog) {
-  assertValidPagePermissions(pagePermissions, catalog.routeById);
+  assertValidPagePermissions(pagePermissions, catalog);
   const selectedRouteIds = pagePermissions.map((page) => page.routeId);
   const selectedRoutePointers = selectedRouteIds.map((routeId) => pointer(ROUTE_CLASS, routeId));
   const selectedModuleIds = new Set(
@@ -493,7 +632,7 @@ async function createPosition(auth, input) {
   const normalized = normalizePositionInput(input, false);
   await assertUniquePositionName(auth, normalized.name);
   const catalog = await loadPositionRouteCatalog(auth);
-  assertValidPagePermissions(normalized.pagePermissions, catalog.routeById);
+  assertValidPagePermissions(normalized.pagePermissions, catalog);
   const Role = Parse.Object.extend(ROLE_CLASS);
   const role = new Role();
   role.set("name", normalized.name);

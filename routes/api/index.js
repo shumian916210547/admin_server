@@ -10,6 +10,12 @@ const { badRequest, forbidden, notFound, unauthorized } = require("../../lib/htt
 const { config } = require("../../config/env");
 const { createSession, setSessionCookie, clearSessionCookie } = require("../../services/auth.service");
 const { getDashboardOverview, recordLoginActivity } = require("../../services/dashboard.service");
+const {
+  registerAdminSession,
+  listOnlineMemberSessions,
+  forceLogoutOnlineMember,
+  freezeOnlineMember,
+} = require("../../services/admin-session.service");
 const { ensureSystemConfiguration } = require("../../services/system-configuration.service");
 const {
   getOrganizationOverview,
@@ -155,6 +161,16 @@ router.post(
           error: activityError.message,
         });
       }
+      try {
+        await registerAdminSession(auth, { sessionId }, req);
+      } catch (sessionError) {
+        // 会话登记是在线成员页的辅助能力，不能让已验证的登录因旧部署 Schema 尚未迁移而失败。
+        logger.warn("admin_session.registration_unavailable", {
+          requestId: req.requestId,
+          userId: auth.userId,
+          error: sessionError.message,
+        });
+      }
       res.json({ data: authPayload(auth, csrfToken), requestId: req.requestId });
     } catch (error) {
       if (error.status) throw error;
@@ -215,9 +231,9 @@ router.get(
 router.get(
   "/organization/members",
   /**
-   * 分页读取当前企业的成员账号与组织授权范围。仅系统管理员可访问，页码、单页数量和账号检索词
-   * 都由组织服务层规范化，避免浏览器一次加载大量员工账号。
-   * @param {import("express").Request} req 已认证请求；query 可包含 page、pageSize 与 keyword。
+   * 分页读取当前企业的成员账号与组织授权范围。仅系统管理员可访问，页码、单页数量、账号检索词、
+   * organizationId 和 includeDescendants 都由组织服务层规范化，避免客户端绕过租户边界。
+   * @param {import("express").Request} req 已认证请求；query 可包含 page、pageSize、keyword、organizationId 与 includeDescendants。
    * @param {import("express").Response} res 返回成员 DTO、总数和当前分页信息。
    * @returns {Promise<void>} 查询成功时返回 200；无系统管理员权限或查询参数非法时返回 403/400。
    */
@@ -305,14 +321,20 @@ router.put(
 router.get(
   "/positions/overview",
   /**
-   * 读取当前企业的岗位、可下放业务页面和按页面可选的按钮权限。仅系统管理员可读取完整权限配置。
+   * 读取当前企业的岗位、完整页面目录和按页面可选的按钮权限。仅系统管理员可读取完整权限配置。
    * @param {import("express").Request} req 已认证请求，req.auth 为服务端可信会话上下文。
    * @param {import("express").Response} res 返回岗位列表、页面目录与权限代码。
    * @returns {Promise<void>} 查询成功时返回 200；权限不足或配置读取失败时由统一错误中间件处理。
    */
   asyncHandler(async (req, res) => {
-    const overview = await getPositionOverview(req.auth);
-    res.json({ data: overview, requestId: req.requestId });
+    let overview = await getPositionOverview(req.auth);
+    if (overview.needsSystemConfigurationRepair) {
+      // 旧租户可能只初始化了部分 Module/Route；管理员打开岗位页时幂等补齐缺失目录并重新读取。
+      await ensureSystemConfiguration(req.auth);
+      overview = await getPositionOverview(req.auth);
+    }
+    const { needsSystemConfigurationRepair, ...safeOverview } = overview;
+    res.json({ data: safeOverview, requestId: req.requestId });
   })
 );
 
@@ -372,6 +394,50 @@ router.get(
   asyncHandler(async (req, res) => {
     const overview = await getDashboardOverview(req.auth);
     res.json({ data: overview, requestId: req.requestId });
+  })
+);
+
+router.get(
+  "/online-members",
+  /**
+   * 查询当前企业仍有有效管理端会话的成员设备列表；所有租户与管理员边界由服务端会话决定。
+   * @param {import("express").Request} req 已认证请求，req.auth 为服务端可信管理员上下文。
+   * @param {import("express").Response} res 返回成员姓名、手机号、上线时间、心跳时间和设备描述。
+   * @returns {Promise<void>} 查询成功返回 200；普通岗位或在线会话查询失败交给统一错误中间件。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await listOnlineMemberSessions(req.auth);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.post(
+  "/online-members/:userId/force-logout",
+  csrfGuard,
+  /**
+   * 撤销目标成员的全部管理端会话；目标 JWT 在下一次 API 请求时由 authenticate 拒绝。
+   * @param {import("express").Request} req 已认证并通过 CSRF 校验的请求，params.userId 为目标成员标识。
+   * @param {import("express").Response} res 返回撤销的会话数量，不返回任何 Token。
+   * @returns {Promise<void>} 撤销完成返回 200；越权或成员不存在返回对应错误。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await forceLogoutOnlineMember(req.auth, req.params.userId);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.post(
+  "/online-members/:userId/freeze",
+  csrfGuard,
+  /**
+   * 在指定分钟内冻结目标账号并撤销其现有管理端会话，冻结状态由登录和每次认证共同校验。
+   * @param {import("express").Request} req 已认证并通过 CSRF 校验的请求，body.durationMinutes 为冻结分钟数。
+   * @param {import("express").Response} res 返回冻结截止时间和目标成员标识，不返回账号凭据。
+   * @returns {Promise<void>} 冻结完成返回 200；时长、成员或权限非法交给统一错误中间件。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await freezeOnlineMember(req.auth, req.params.userId, req.body?.durationMinutes);
+    res.json({ data: result, requestId: req.requestId });
   })
 );
 

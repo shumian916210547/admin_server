@@ -138,6 +138,19 @@ function normalizeMemberPageSize(value) {
 }
 
 /**
+ * 规范化成员组织范围筛选开关，兼容 URL 查询参数的字符串布尔值。
+ * @param {unknown} value URL 查询参数中的 includeDescendants 值；省略时按 false 处理。
+ * @returns {boolean} 是否包含当前组织的全部后代节点。
+ * @throws {import("../lib/http-error").HttpError} 值不是布尔值或 true/false 字符串时抛出 400。
+ */
+function normalizeMemberBoolean(value) {
+  if (value === undefined || value === null || value === "") return false;
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  throw badRequest("成员组织范围开关必须是布尔值");
+}
+
+/**
  * 确认当前会话为 Company 的系统管理员。组织树和账号范围是平台安全边界，不能由子管理员修改。
  * @param {{isAdmin?: boolean}} auth authenticate 中间件提供的可信认证上下文。
  * @returns {void} 系统管理员时正常返回。
@@ -199,6 +212,8 @@ async function ensureOrganizationInfrastructure() {
       { name: "organizationIds", type: "Array" },
       { name: "organizationScopes", type: "Array" },
       { name: "organizationAdmin", type: "Boolean" },
+      { name: "phone", type: "String" },
+      { name: "frozenUntil", type: "Date" },
       { name: "systemOptions", type: "Object" },
     ],
     false
@@ -266,6 +281,7 @@ function memberDto(user) {
     name: user.get("name") || "",
     nickname: user.get("nickname") || "",
     email: user.get("email") || "",
+    phone: user.get("phone") || user.get("mobilePhone") || "",
     roleId: pointerId(user.get("role")),
     // 保留主组织字段用于兼容历史业务；新页面统一消费 organizationIds 多组织关联。
     organizationId: legacyOrganizationId || organizationIds[0] || null,
@@ -489,14 +505,32 @@ async function listOrganizationMembers(auth, input = {}) {
   const page = normalizeMemberPage(input.page);
   const pageSize = normalizeMemberPageSize(input.pageSize);
   const keyword = optionalText(input.keyword, "成员账号检索词", 64);
+  const organizationId = normalizeObjectId(input.organizationId, "组织标识", false);
+  const includeDescendants = normalizeMemberBoolean(input.includeDescendants);
+  const organizationIds = organizationId
+    ? await resolveOrganizationFilterIds(auth, organizationId, includeDescendants)
+    : [];
   const configureQuery = (query) => {
     query.equalTo("company", pointer("Company", auth.companyId));
     if (keyword) query.contains("username", keyword);
   };
-  const recordsQuery = new Parse.Query(Parse.User);
-  const countQuery = new Parse.Query(Parse.User);
-  configureQuery(recordsQuery);
-  configureQuery(countQuery);
+  const buildMemberQuery = () => {
+    if (!organizationIds.length) {
+      const query = new Parse.Query(Parse.User);
+      configureQuery(query);
+      return query;
+    }
+    const pointers = organizationIds.map((id) => pointer(ORGANIZATION_CLASS, id));
+    const primaryQuery = new Parse.Query(Parse.User);
+    const associatedQuery = new Parse.Query(Parse.User);
+    configureQuery(primaryQuery);
+    configureQuery(associatedQuery);
+    primaryQuery.containedIn("organization", pointers);
+    associatedQuery.containedIn("organizationIds", pointers);
+    return Parse.Query.or(primaryQuery, associatedQuery);
+  };
+  const recordsQuery = buildMemberQuery();
+  const countQuery = buildMemberQuery();
   recordsQuery.include(["role", "organization", "organizationIds", "organizationScopes"]);
   recordsQuery.descending("createdAt");
   recordsQuery.limit(pageSize);
@@ -508,7 +542,44 @@ async function listOrganizationMembers(auth, input = {}) {
     count,
     page,
     pageSize,
+    organizationId,
+    includeDescendants,
   };
+}
+
+/**
+ * 解析成员列表的组织筛选范围；当前组织本身始终包含，后代模式通过服务端组织树递归展开。
+ * @param {{companyId: string}} auth 当前请求的可信企业认证上下文。
+ * @param {string} organizationId 作为筛选根节点的组织 objectId。
+ * @param {boolean} includeDescendants 是否包含全部后代组织。
+ * @returns {Promise<string[]>} 可用于 Parse containedIn 的同租户组织 objectId 集合。
+ * @throws {import("../lib/http-error").HttpError} 组织不存在、跨租户或组织树读取失败时抛出。
+ */
+async function resolveOrganizationFilterIds(auth, organizationId, includeDescendants) {
+  await getTenantOrganization(auth, organizationId);
+  if (!includeDescendants) return [organizationId];
+
+  const records = await listTenantRecords(ORGANIZATION_CLASS, auth.companyId, ["parent"]);
+  const childrenByParent = new Map();
+  for (const record of records) {
+    const parentId = pointerId(record.get("parent"));
+    if (!parentId || record.get("isActive") === false) continue;
+    const children = childrenByParent.get(parentId) || [];
+    children.push(record.id);
+    childrenByParent.set(parentId, children);
+  }
+
+  const result = [];
+  const visited = new Set();
+  const pending = [organizationId];
+  while (pending.length) {
+    const currentId = pending.shift();
+    if (!currentId || visited.has(currentId)) continue;
+    visited.add(currentId);
+    result.push(currentId);
+    pending.push(...(childrenByParent.get(currentId) || []));
+  }
+  return result;
 }
 
 /**

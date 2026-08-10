@@ -9,6 +9,7 @@ const master = { useMasterKey: true };
 const CLASS_NAME_PATTERN = /^_?[A-Za-z][A-Za-z0-9_]*$/;
 const BLOCKED_CLASSES = new Set([
   "LoginActivity",
+  "AdminSession",
   "_Session",
   "_Installation",
   "_Role",
@@ -17,6 +18,7 @@ const BLOCKED_CLASSES = new Set([
 ]);
 const PROTECTED_SCHEMA_CLASSES = new Set([
   "LoginActivity",
+  "AdminSession",
   "Company",
   "Role",
   "Module",
@@ -290,6 +292,10 @@ async function getAuthContext(userId) {
   const user = await userQuery.get(userId, master).catch(() => null);
   if (!user || user.get("isDelete") === true) {
     throw unauthorized("Your account is unavailable");
+  }
+  const frozenUntil = user.get("frozenUntil");
+  if (frozenUntil && new Date(frozenUntil).getTime() > Date.now()) {
+    throw unauthorized("Your account is frozen");
   }
 
   const companyId = objectId(user.get("company"));

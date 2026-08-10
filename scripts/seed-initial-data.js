@@ -686,6 +686,17 @@ async function main() {
     await company.save(null, { useMasterKey: true });
   }
 
+  const homeRoute = (
+    await ensureObject("Route", "system.home.page", {
+      name: "首页",
+      path: "home",
+      rank: 1,
+      menu: true,
+      pageComponent: "/home",
+      targetClass: "Dashboard",
+      company: pointer(company),
+    })
+  ).object;
   const moduleRoute = (
     await ensureObject("Route", "system.module", {
       name: "模块管理",
@@ -741,6 +752,17 @@ async function main() {
       company: pointer(company),
     })
   ).object;
+  const onlineMemberRoute = (
+    await ensureObject("Route", "system.online-member", {
+      name: "在线成员",
+      path: "online-member",
+      rank: 6,
+      menu: true,
+      pageComponent: "/system/online-member/index",
+      targetClass: "_User",
+      company: pointer(company),
+    })
+  ).object;
 
   const homeModule = (
     await ensureObject("Module", "system.home", {
@@ -753,6 +775,7 @@ async function main() {
       company: pointer(company),
     })
   ).object;
+  await addPointers(homeModule, "routes", [homeRoute]);
   const systemModule = (
     await ensureObject("Module", "system.management", {
       name: "系统管理",
@@ -763,7 +786,14 @@ async function main() {
       company: pointer(company),
     })
   ).object;
-  await addPointers(systemModule, "routes", [moduleRoute, schemaRoute, organizationRoute, memberRoute, positionRoute]);
+  await addPointers(systemModule, "routes", [
+    moduleRoute,
+    schemaRoute,
+    organizationRoute,
+    memberRoute,
+    positionRoute,
+    onlineMemberRoute,
+  ]);
 
   const role = (
     await ensureObject("Role", "system.administrator", {
@@ -773,12 +803,14 @@ async function main() {
   ).object;
   await addPointers(role, "module", [
     homeModule,
+    homeRoute,
     systemModule,
     moduleRoute,
     schemaRoute,
     organizationRoute,
     memberRoute,
     positionRoute,
+    onlineMemberRoute,
   ]);
 
   const { user, created: createdUser } = await ensureAdministrator(
@@ -804,10 +836,20 @@ async function main() {
         "permission:insertField",
         "permission:editField",
         "permission:removeField",
+        "permission:forceLogout",
+        "permission:freeze",
       ],
     })
   ).object;
-  await addPointers(permission, "routes", [moduleRoute, schemaRoute, organizationRoute, memberRoute, positionRoute]);
+  await addPointers(permission, "routes", [
+    homeRoute,
+    moduleRoute,
+    schemaRoute,
+    organizationRoute,
+    memberRoute,
+    positionRoute,
+    onlineMemberRoute,
+  ]);
 
   const metadataSummary = await ensureMetadata(company);
   const result = {
