@@ -35,6 +35,9 @@
     "dev": "node app.js",
     "prod": "pm2 start ecosystem.config.js --env production",
     "seed:initial": "node scripts/seed-initial-data.js",
+    "migrate:collab": "node scripts/migrate-collab.js",
+    "test:collab": "node scripts/collab-three-cycle-test.js",
+    "test:collab-browser": "node scripts/collab-browser-three-cycle-test.js",
     "security:harden": "node scripts/harden-parse.js",
     "security:check": "node scripts/security-check.js",
     "check": "node scripts/check.js",
@@ -54,7 +57,8 @@
     "pg": "^8.16.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "playwright": "^1.62.1"
   },
   "engines": {
     "node": ">=20.0.0"

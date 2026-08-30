@@ -48,6 +48,36 @@ const {
   listSchemaDefinitions,
   assertUserInTenant,
 } = require("../../services/parse-data.service");
+const {
+  createDocument,
+  queryDocuments,
+  getDocument,
+  updateDocument,
+  softDeleteDocument,
+  restoreDocument,
+  importDocument,
+  getDocumentExport,
+} = require("../../services/collab-document.service");
+const {
+  updateDocumentAccess,
+  listDocumentMembers,
+  listMemberOptions,
+  saveDocumentMembers,
+  transferDocumentOwnership,
+  removeDocumentMember,
+} = require("../../services/collab-access.service");
+const {
+  listDocumentVersions,
+  createDocumentVersion,
+  restoreDocumentVersion,
+} = require("../../services/collab-version.service");
+const { listDocumentActivity } = require("../../services/collab-history.service");
+const {
+  getEditorConfig,
+  getOfficeFile,
+  handleOfficeCallback,
+} = require("../../services/collab-office.service");
+const collabStorage = require("../../services/collab-storage.service");
 
 const router = express.Router();
 const tempDirectory = path.join(config.upload.storageDir, ".tmp");
@@ -97,6 +127,30 @@ const upload = multer({
   limits: { fileSize: config.upload.maxBytes, files: 1 },
   fileFilter: (req, file, callback) => {
     if (!uploadTypeForMime(file.mimetype)) return callback(badRequest("This file type is not allowed"));
+    return callback(null, true);
+  },
+});
+
+/**
+ * 协同表格导入使用独立临时目录和文件大小限制，只接受 xlsx/csv 的声明 MIME，内容安全由服务层复核。
+ * @type {import("multer").Multer}
+ */
+const collabUpload = multer({
+  storage: multer.diskStorage({
+    destination: collabStorage.getTemporaryDirectory(),
+    filename: (req, file, callback) => callback(null, crypto.randomUUID()),
+  }),
+  limits: { fileSize: config.collab.maxFileBytes, files: 1 },
+  fileFilter: (req, file, callback) => {
+    const allowed = [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "text/csv",
+      "application/csv",
+      "text/plain",
+    ];
+    if (!allowed.includes(String(file.mimetype || "").toLowerCase())) {
+      return callback(badRequest("协同导入仅支持 xlsx 或 csv 文件"));
+    }
     return callback(null, true);
   },
 });
@@ -197,7 +251,337 @@ router.post(
   })
 );
 
+router.get(
+  "/collab/office/files/:documentId",
+  /**
+   * 向已签发短时 Office 文件令牌的 ONLYOFFICE 服务提供当前工作簿；该接口不依赖浏览器 Cookie。
+   * @param {import("express").Request} req 包含 documentId 和 query.token 的 Office 文件请求。
+   * @param {import("express").Response} res 发送受控文件内容的响应对象。
+   * @returns {Promise<void>} 文件发送启动后兑现；令牌、文档状态或文件不存在时返回 401/404。
+   * @throws {Error} Office 令牌校验、文档读取或文件发送失败时交给统一错误中间件。
+   */
+  asyncHandler(async (req, res) => {
+    const file = await getOfficeFile(req.params.documentId, req.query.token);
+    res.set({
+      "Cache-Control": "private, no-store",
+      "Content-Security-Policy": "sandbox; default-src 'none'; base-uri 'none'; form-action 'none'",
+      "Content-Disposition": "inline",
+      "X-Content-Type-Options": "nosniff",
+    });
+    res.type(file.mimeType);
+    res.sendFile(file.filePath, (error) => {
+      if (error && !res.headersSent) res.status(error.statusCode || 500).end();
+    });
+  })
+);
+
+router.post(
+  "/collab/office/callback/:documentId",
+  /**
+   * 接收 ONLYOFFICE 内部保存回调；使用独立短时 JWT，不依赖浏览器认证和 CSRF，处理成功返回固定 error:0。
+   * @param {import("express").Request} req 包含 documentId、query.token 和 Office 回调 JSON 的请求。
+   * @param {import("express").Response} res 返回 ONLYOFFICE 要求的回调确认格式。
+   * @returns {Promise<void>} 回调处理完成后兑现；签名、文件或数据库异常由统一错误中间件处理。
+   * @throws {Error} 回调校验、文件验证、版本写入或审计失败时抛出。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await handleOfficeCallback(req.params.documentId, req.query.token, req.body, req.requestId);
+    res.json(result);
+  })
+);
+
 router.use(authenticate);
+
+router.get(
+  "/collab/documents",
+  /**
+   * 查询当前会话所属 Company 内可见的协同文档，并由服务层追加组织范围和文档 ACL 过滤。
+   * @param {import("express").Request} req 已通过 authenticate 的请求，query 可包含 page、pageSize、keyword 和 status。
+   * @param {import("express").Response} res 返回文档安全 DTO 和分页信息。
+   * @returns {Promise<void>} 查询成功返回 200；页面权限、参数或数据库错误交给统一中间件。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await queryDocuments(req.auth, req.query);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.post(
+  "/collab/documents",
+  csrfGuard,
+  /**
+   * 创建协同文档；Company、owner、创建人和时间均由服务端会话及数据库生成。
+   * @param {import("express").Request} req 已认证并通过 CSRF 的请求，body 可包含 name、accessMode、organizationId、allowDownload 和 storageLimit。
+   * @param {import("express").Response} res 返回新文档安全 DTO。
+   * @returns {Promise<void>} 创建成功返回 201；输入、权限、组织或存储失败时返回对应错误。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await createDocument(req.auth, req.body, req.requestId);
+    res.status(201).json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.get(
+  "/collab/documents/:documentId",
+  /**
+   * 获取当前会话可访问的单份协同文档摘要和权限。
+   * @param {import("express").Request} req 已认证请求，params.documentId 为文档 UUID。
+   * @param {import("express").Response} res 返回文档详情 DTO。
+   * @returns {Promise<void>} 查询成功返回 200；跨租户或无 ACL 时返回 404/403。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await getDocument(req.auth, req.params.documentId);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.patch(
+  "/collab/documents/:documentId",
+  csrfGuard,
+  /**
+   * 修改文档名称、归档状态、下载策略或文档容量上限；服务层只接受固定业务字段并重新校验 owner/编辑权限。
+   * @param {import("express").Request} req 已认证并通过 CSRF 的请求，body 可包含 name、status、allowDownload 和 storageLimit。
+   * @param {import("express").Response} res 返回更新后的文档安全 DTO。
+   * @returns {Promise<void>} 更新成功返回 200；无权限、状态冲突或输入非法时返回对应错误。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await updateDocument(req.auth, req.params.documentId, req.body, req.requestId);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.delete(
+  "/collab/documents/:documentId",
+  csrfGuard,
+  /**
+   * 软删除一份协同文档并递增访问版本；前端必须先进行中文二次确认，文件不会立即物理清理。
+   * @param {import("express").Request} req 已认证并通过 CSRF 的请求，params.documentId 为文档 UUID。
+   * @param {import("express").Response} res 删除成功时返回 204。
+   * @returns {Promise<void>} 软删除和审计完成后兑现；无权限或文档不存在时返回对应错误。
+   */
+  asyncHandler(async (req, res) => {
+    await softDeleteDocument(req.auth, req.params.documentId, req.requestId);
+    res.status(204).end();
+  })
+);
+
+router.post(
+  "/collab/documents/:documentId/restore",
+  csrfGuard,
+  /**
+   * 在保留版本和对象文件的窗口内恢复软删除文档。
+   * @param {import("express").Request} req 已认证并通过 CSRF 的请求，params.documentId 为文档 UUID。
+   * @param {import("express").Response} res 返回恢复后的文档安全 DTO。
+   * @returns {Promise<void>} 恢复成功返回 200；无恢复权限或状态冲突时返回对应错误。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await restoreDocument(req.auth, req.params.documentId, req.requestId);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.get(
+  "/collab/documents/:documentId/editor-config",
+  /**
+   * 获取编辑器容器配置；未部署 ONLYOFFICE 时返回明确的不可用原因，不伪造协同编辑能力。
+   * @param {import("express").Request} req 已认证请求，params.documentId 为文档 UUID。
+   * @param {import("express").Response} res 返回文档权限和编辑器配置。
+   * @returns {Promise<void>} 查询成功返回 200；文档 ACL 或 Office 状态错误交给统一中间件。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await getEditorConfig(req.auth, req.params.documentId);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.post(
+  "/collab/documents/:documentId/import",
+  csrfGuard,
+  collabUpload.single("file"),
+  /**
+   * 导入协同工作簿，服务层验证 MIME、扩展名、文件头、ZIP 条目、宏、外链和解压大小。
+   * @param {import("express").Request} req 已认证并通过 CSRF 的请求，file 为临时上传文件。
+   * @param {import("express").Response} res 返回导入后的文档安全 DTO。
+   * @returns {Promise<void>} 导入成功返回 200；文件或权限校验失败时返回对应错误。
+   */
+  asyncHandler(async (req, res) => {
+    try {
+      const result = await importDocument(req.auth, req.params.documentId, req.file, req.requestId);
+      res.json({ data: result, requestId: req.requestId });
+    } finally {
+      if (req.file?.path) await fs.promises.unlink(req.file.path).catch(() => undefined);
+    }
+  })
+);
+
+router.get(
+  "/collab/documents/:documentId/export",
+  /**
+   * 导出当前用户被明确授予下载权限的工作簿；服务层先执行 page export 和文档下载 ACL。
+   * @param {import("express").Request} req 已认证请求，params.documentId 为文档 UUID。
+   * @param {import("express").Response} res 发送受控文件的响应对象。
+   * @param {import("express").NextFunction} next 文件发送失败时接收错误的 Express 回调。
+   * @returns {Promise<void>} 文件发送启动后兑现；权限或文件不存在时交给统一错误中间件。
+   */
+  asyncHandler(async (req, res, next) => {
+    const file = await getDocumentExport(req.auth, req.params.documentId, req.requestId);
+    res.set({
+      "Cache-Control": "private, no-store",
+      "Content-Security-Policy": "sandbox; default-src 'none'; base-uri 'none'; form-action 'none'",
+      "X-Content-Type-Options": "nosniff",
+    });
+    res.type(file.mimeType);
+    res.download(file.filePath, file.fileName, { dotfiles: "deny" }, (error) => {
+      if (error && !res.headersSent) next(error);
+    });
+  })
+);
+
+router.patch(
+  "/collab/documents/:documentId/access",
+  csrfGuard,
+  /**
+   * 切换指定成员或企业内公开访问模式，并以 expectedAccessVersion 防止并发覆盖。
+   * @param {import("express").Request} req 已认证并通过 CSRF 的请求，body 包含 accessMode、organizationId 和 expectedAccessVersion。
+   * @param {import("express").Response} res 返回更新后的文档权限 DTO。
+   * @returns {Promise<void>} 更新成功返回 200；版本冲突、组织越权或分享权限不足时返回对应错误。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await updateDocumentAccess(req.auth, req.params.documentId, req.body, req.requestId);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.get(
+  "/collab/documents/:documentId/members",
+  /**
+   * 查询文档成员 ACL；只有 owner 或系统管理员可以查看分享配置。
+   * @param {import("express").Request} req 已认证请求，params.documentId 为文档 UUID。
+   * @param {import("express").Response} res 返回成员权限和 accessVersion。
+   * @returns {Promise<void>} 查询成功返回 200；无分享权限时返回 403。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await listDocumentMembers(req.auth, req.params.documentId);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.post(
+  "/collab/documents/:documentId/transfer-ownership",
+  csrfGuard,
+  /**
+   * 将文档所有权转移给当前 Company 内有效成员；服务层校验 owner/管理员、组织范围和 accessVersion。
+   * @param {import("express").Request} req 已认证并通过 CSRF 的请求，body 包含 newOwnerUserId 和 expectedAccessVersion。
+   * @param {import("express").Response} res 返回转移后的文档安全 DTO。
+   * @returns {Promise<void>} 转移成功返回 200；目标成员无效、无权或版本冲突时返回对应错误。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await transferDocumentOwnership(req.auth, req.params.documentId, req.body, req.requestId);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.get(
+  "/collab/documents/:documentId/member-options",
+  /**
+   * 查询当前 owner 可选择的同 Company 有效成员，结果按文档和操作者组织范围限制。
+   * @param {import("express").Request} req 已认证请求，query.keyword 为可选成员检索词。
+   * @param {import("express").Response} res 返回脱敏成员选择器列表。
+   * @returns {Promise<void>} 查询成功返回 200；无分享权限或跨租户请求时返回对应错误。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await listMemberOptions(req.auth, req.params.documentId, req.query);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.put(
+  "/collab/documents/:documentId/members",
+  csrfGuard,
+  /**
+   * 批量保存文档成员角色和下载开关，服务端重新验证每个 userId 所属 Company、状态和组织范围。
+   * @param {import("express").Request} req 已认证并通过 CSRF 的请求，body 包含 expectedAccessVersion 和 members 数组。
+   * @param {import("express").Response} res 返回更新后的成员 ACL。
+   * @returns {Promise<void>} 保存成功返回 200；版本冲突、成员越权或角色非法时返回对应错误。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await saveDocumentMembers(req.auth, req.params.documentId, req.body, req.requestId);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.delete(
+  "/collab/documents/:documentId/members/:userId",
+  csrfGuard,
+  /**
+   * 撤销单个文档成员的 active ACL，保留 revoked 记录用于审计和访问失效。
+   * @param {import("express").Request} req 已认证并通过 CSRF 的请求，params 含文档 UUID 和成员 objectId。
+   * @param {import("express").Response} res 返回撤销结果和新 accessVersion。
+   * @returns {Promise<void>} 撤销成功返回 200；owner 或不存在成员不能被移除。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await removeDocumentMember(req.auth, req.params.documentId, req.params.userId, req.requestId);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.get(
+  "/collab/documents/:documentId/versions",
+  /**
+   * 查询当前用户可见文档的版本历史，版本 DTO 不返回对象存储物理路径。
+   * @param {import("express").Request} req 已认证请求，params.documentId 为文档 UUID。
+   * @param {import("express").Response} res 返回版本列表和当前 revision。
+   * @returns {Promise<void>} 查询成功返回 200；权限或数据库错误交给统一错误中间件。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await listDocumentVersions(req.auth, req.params.documentId);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.get(
+  "/collab/documents/:documentId/activity",
+  /**
+   * 查询当前用户可见文档的追加式修改记录；每次 Office 自动保存、导入、恢复和文档配置变更均可在此追溯。
+   * @param {import("express").Request} req 已认证请求，params.documentId 为文档 UUID，query 可包含 page/pageSize。
+   * @param {import("express").Response} res 返回修改记录分页结果，不返回请求 ID、物理存储路径或文件内容。
+   * @returns {Promise<void>} 查询成功返回 200；文档 ACL、分页参数或数据库错误交给统一错误中间件。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await listDocumentActivity(req.auth, req.params.documentId, req.query);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.post(
+  "/collab/documents/:documentId/versions",
+  csrfGuard,
+  /**
+   * 为当前工作簿创建命名版本，写入版本摘要和审计事件但不复制或暴露文件内容。
+   * @param {import("express").Request} req 已认证并通过 CSRF 的请求，body.label 为版本名称。
+   * @param {import("express").Response} res 返回新建版本 DTO。
+   * @returns {Promise<void>} 创建成功返回 201；无编辑权限或版本名称非法时返回对应错误。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await createDocumentVersion(req.auth, req.params.documentId, req.body, req.requestId);
+    res.status(201).json({ data: result, requestId: req.requestId });
+  })
+);
+
+router.post(
+  "/collab/documents/:documentId/versions/:versionId/restore",
+  csrfGuard,
+  /**
+   * 从历史版本创建新的恢复版本，保证 revision 单调递增且历史记录不可变。
+   * @param {import("express").Request} req 已认证并通过 CSRF 的请求，params 含文档和历史版本 UUID。
+   * @param {import("express").Response} res 返回恢复后的文档和新版本 DTO。
+   * @returns {Promise<void>} 恢复成功返回 200；文档状态、权限或版本标识非法时返回对应错误。
+   */
+  asyncHandler(async (req, res) => {
+    const result = await restoreDocumentVersion(req.auth, req.params.documentId, req.params.versionId, req.requestId);
+    res.json({ data: result, requestId: req.requestId });
+  })
+);
 
 router.post(
   "/system/ensure-configuration",

@@ -22,12 +22,19 @@ Parse.initialize(config.appId, undefined, config.masterKey);
 Parse.masterKey = config.masterKey;
 Parse.serverURL = config.serverURL;
 
+/**
+ * 读取初始化脚本使用的管理员凭据，并按运行环境校验密码长度。
+ * @returns {{username: string, password: string}} 要创建或同步的管理员账号和密码。
+ * @throws {Error} 环境变量缺失、账号为空或密码不符合当前环境要求时抛出。
+ */
 function initialAdministratorCredentials() {
-  const username = process.env.INITIAL_ADMIN_USERNAME;
+  const username = process.env.INITIAL_ADMIN_USERNAME?.trim();
   const password = process.env.INITIAL_ADMIN_PASSWORD;
-  if (!username || !password || password.length < 12) {
+  const isLocalDevelopment = environment.environment === "development";
+  const minimumPasswordLength = isLocalDevelopment ? 6 : 12;
+  if (!username || !password || password.length < minimumPasswordLength) {
     throw new Error(
-      "INITIAL_ADMIN_USERNAME and an INITIAL_ADMIN_PASSWORD of at least 12 characters are required"
+      `INITIAL_ADMIN_USERNAME and an INITIAL_ADMIN_PASSWORD of at least ${minimumPasswordLength} characters are required`
     );
   }
   return { username, password };
@@ -406,6 +413,14 @@ async function addPointers(object, fieldName, objects) {
   return changed;
 }
 
+/**
+ * 幂等创建并补齐当前 Company 的系统管理员账号；本地开发重复播种时同步配置的测试密码。
+ * @param {Parse.Object} role 已保存的系统管理员 Role 记录。
+ * @param {Parse.Object} company 已保存的默认 Company 记录。
+ * @param {{username: string, password: string}} credentials 经环境校验的管理员凭据。
+ * @returns {Promise<{user: Parse.User, created: boolean}>} 管理员用户记录及本次是否新建。
+ * @throws {Error} Parse 查询、创建或更新管理员记录失败时抛出。
+ */
 async function ensureAdministrator(role, company, credentials) {
   const query = new Parse.Query(Parse.User);
   query.equalTo("username", credentials.username);
@@ -423,6 +438,11 @@ async function ensureAdministrator(role, company, credentials) {
     await user.signUp(null, { useMasterKey: true });
   } else {
     let changed = false;
+    if (environment.environment === "development") {
+      // Parse 不提供可逆读取的明文密码；本地播种需重新写入配置密码，保证测试账号可直接登录。
+      user.set("password", credentials.password);
+      changed = true;
+    }
     if (isUnset(user.get("name"))) {
       user.set("name", "系统管理员");
       changed = true;
@@ -469,7 +489,7 @@ function uiField(type, chineseName, options = {}) {
     chineseName,
     editComponent:
       options.editComponent ||
-      (type === "Boolean" ? "ASwitch" : type === "Number" ? "AInputNumber" : "AInput"),
+      (type === "Boolean" ? "ElSwitch" : type === "Number" ? "ElInputNumber" : "ElInput"),
     targetClass: options.targetClass,
     isFilter: Boolean(options.isFilter),
     isTable: Boolean(options.isTable),
@@ -484,22 +504,22 @@ function uiField(type, chineseName, options = {}) {
 function defaultFields() {
   return {
     objectId: uiField("String", "对象 ID", {
-      editComponent: "AInput",
+      editComponent: "ElInput",
       componentOption: { disabled: true, allowClear: false },
     }),
     company: uiField("Pointer", "公司", {
       required: true,
       targetClass: "Company",
       isPointer: true,
-      editComponent: "ASelect",
+      editComponent: "ElSelect",
       componentOption: { selectTable: "Company", allowClear: false },
     }),
     createdAt: uiField("Date", "创建时间", {
-      editComponent: "AInput",
+      editComponent: "ElInput",
       componentOption: { disabled: true, allowClear: false },
     }),
     updatedAt: uiField("Date", "更新时间", {
-      editComponent: "AInput",
+      editComponent: "ElInput",
       componentOption: { disabled: true, allowClear: false },
     }),
   };
@@ -522,7 +542,7 @@ function pointerField(chineseName, targetClass, options = {}) {
     ...options,
     targetClass,
     isPointer: true,
-    editComponent: "ASelect",
+    editComponent: "ElSelect",
     componentOption: { selectTable: targetClass, ...options.componentOption },
   });
 }
@@ -532,7 +552,7 @@ function pointerArrayField(chineseName, targetClass, options = {}) {
     ...options,
     targetClass,
     isPointer: true,
-    editComponent: "ASelect",
+    editComponent: "ElSelect",
     componentOption: {
       mode: "multiple",
       selectTable: targetClass,
@@ -599,7 +619,7 @@ function metadataDefinitions() {
         ...defaultFields(),
         name: textField("表名", { required: true, isFilter: true, isTable: true }),
         nickName: textField("表别名", { required: true, isTable: true }),
-        fields: uiField("Object", "字段配置", { editComponent: "AInput" }),
+        fields: uiField("Object", "字段配置", { editComponent: "ElInput" }),
       },
     },
     {
@@ -624,8 +644,8 @@ function metadataDefinitions() {
         name: textField("名称", { isTable: true }),
         role: pointerField("角色", "Role", { isTable: true }),
         routes: pointerArrayField("路由", "Route", { isTable: true }),
-        permissions: uiField("Array", "按钮权限", { editComponent: "ASelect", componentOption: { mode: "tags" } }),
-        routePermissions: uiField("Object", "逐页按钮权限", { editComponent: "AInput" }),
+        permissions: uiField("Array", "按钮权限", { editComponent: "ElSelect", componentOption: { mode: "tags" } }),
+        routePermissions: uiField("Object", "逐页按钮权限", { editComponent: "ElInput" }),
         positionManaged: booleanField("由岗位管理维护", { defaultValue: false }),
       },
     },
@@ -763,6 +783,17 @@ async function main() {
       company: pointer(company),
     })
   ).object;
+  const collabRoute = (
+    await ensureObject("Route", "collab.spreadsheet", {
+      name: "协同表格",
+      path: "spreadsheet",
+      rank: 1,
+      menu: true,
+      pageComponent: "/collab/spreadsheet/index",
+      targetClass: "CollabDocument",
+      company: pointer(company),
+    })
+  ).object;
 
   const homeModule = (
     await ensureObject("Module", "system.home", {
@@ -786,6 +817,16 @@ async function main() {
       company: pointer(company),
     })
   ).object;
+  const collabModule = (
+    await ensureObject("Module", "collab.workspace", {
+      name: "协同办公",
+      path: "collab",
+      rank: 8,
+      menu: true,
+      icon: "Grid",
+      company: pointer(company),
+    })
+  ).object;
   await addPointers(systemModule, "routes", [
     moduleRoute,
     schemaRoute,
@@ -794,6 +835,7 @@ async function main() {
     positionRoute,
     onlineMemberRoute,
   ]);
+  await addPointers(collabModule, "routes", [collabRoute]);
 
   const role = (
     await ensureObject("Role", "system.administrator", {
@@ -811,6 +853,8 @@ async function main() {
     memberRoute,
     positionRoute,
     onlineMemberRoute,
+    collabModule,
+    collabRoute,
   ]);
 
   const { user, created: createdUser } = await ensureAdministrator(
@@ -838,6 +882,10 @@ async function main() {
         "permission:removeField",
         "permission:forceLogout",
         "permission:freeze",
+        "permission:import",
+        "permission:export",
+        "permission:share",
+        "permission:history",
       ],
     })
   ).object;
@@ -849,6 +897,7 @@ async function main() {
     memberRoute,
     positionRoute,
     onlineMemberRoute,
+    collabRoute,
   ]);
 
   const metadataSummary = await ensureMetadata(company);

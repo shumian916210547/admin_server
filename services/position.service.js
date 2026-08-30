@@ -45,6 +45,10 @@ const BUTTON_PERMISSION_CODES = Object.freeze([
   "permission:removeField",
   "permission:forceLogout",
   "permission:freeze",
+  "permission:import",
+  "permission:export",
+  "permission:share",
+  "permission:history",
 ]);
 const BUTTON_PERMISSION_SET = new Set(BUTTON_PERMISSION_CODES);
 /**
@@ -81,6 +85,16 @@ const PAGE_BUTTON_PERMISSION_CODES = Object.freeze({
   "system.member": Object.freeze(["permission:query", "permission:insert", "permission:edit"]),
   "system.position": Object.freeze(["permission:query", "permission:insert", "permission:edit", "permission:remove"]),
   "system.online-member": Object.freeze(["permission:query", "permission:forceLogout", "permission:freeze"]),
+  "collab.spreadsheet": Object.freeze([
+    "permission:query",
+    "permission:insert",
+    "permission:edit",
+    "permission:remove",
+    "permission:import",
+    "permission:export",
+    "permission:share",
+    "permission:history",
+  ]),
 });
 /** 旧租户可能缺少 systemKey，按受控系统页面组件路径提供同等的按钮权限映射。 */
 const PAGE_BUTTON_COMPONENT_KEYS = Object.freeze({
@@ -91,6 +105,7 @@ const PAGE_BUTTON_COMPONENT_KEYS = Object.freeze({
   "/system/member/index": "system.member",
   "/system/position/index": "system.position",
   "/system/online-member/index": "system.online-member",
+  "/collab/spreadsheet/index": "collab.spreadsheet",
 });
 /** 动态 CommonPage/Wrapper 页面当前由通用表格真实渲染的按钮权限。 */
 const DEFAULT_PAGE_BUTTON_PERMISSION_CODES = Object.freeze([

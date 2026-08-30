@@ -26,7 +26,7 @@ const PROTECTED_SCHEMA_CLASSES = new Set([
   "Schema",
   "AllotPermission",
   "Permission",
-  "AntdIcon",
+  "ElementIcon",
   ORGANIZATION_CLASS,
 ]);
 const CONFIGURATION_CLASSES = new Set([
@@ -38,7 +38,7 @@ const CONFIGURATION_CLASSES = new Set([
   "AllotPermission",
   ORGANIZATION_CLASS,
 ]);
-const GLOBAL_READ_CLASSES = new Set(["AntdIcon", "Permission"]);
+const GLOBAL_READ_CLASSES = new Set(["ElementIcon", "Permission"]);
 const USER_PRIVATE_FIELDS = new Set([
   "name",
   "nickname",

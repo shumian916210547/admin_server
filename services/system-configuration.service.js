@@ -72,7 +72,7 @@ function uiField(type, chineseName, options = {}) {
     type,
     required: Boolean(options.required),
     chineseName,
-    editComponent: options.editComponent || (type === "Boolean" ? "ASwitch" : type === "Number" ? "AInputNumber" : "AInput"),
+    editComponent: options.editComponent || (type === "Boolean" ? "ElSwitch" : type === "Number" ? "ElInputNumber" : "ElInput"),
     targetClass: options.targetClass,
     isFilter: Boolean(options.isFilter),
     isTable: Boolean(options.isTable),
@@ -89,16 +89,16 @@ function uiField(type, chineseName, options = {}) {
  */
 function defaultMetadataFields() {
   return {
-    objectId: uiField("String", "对象 ID", { editComponent: "AInput", componentOption: { disabled: true, allowClear: false } }),
+    objectId: uiField("String", "对象 ID", { editComponent: "ElInput", componentOption: { disabled: true, allowClear: false } }),
     company: uiField("Pointer", "企业", {
       required: true,
       targetClass: "Company",
       isPointer: true,
-      editComponent: "ASelect",
+      editComponent: "ElSelect",
       componentOption: { selectTable: "Company", allowClear: false },
     }),
-    createdAt: uiField("Date", "创建时间", { editComponent: "AInput", componentOption: { disabled: true, allowClear: false } }),
-    updatedAt: uiField("Date", "更新时间", { editComponent: "AInput", componentOption: { disabled: true, allowClear: false } }),
+    createdAt: uiField("Date", "创建时间", { editComponent: "ElInput", componentOption: { disabled: true, allowClear: false } }),
+    updatedAt: uiField("Date", "更新时间", { editComponent: "ElInput", componentOption: { disabled: true, allowClear: false } }),
   };
 }
 
@@ -125,7 +125,7 @@ function configurationMetadataDefinitions() {
         routes: uiField("Array", "子路由", {
           targetClass: "Route",
           isPointer: true,
-          editComponent: "ASelect",
+          editComponent: "ElSelect",
           componentOption: { mode: "multiple", selectTable: "Route" },
         }),
       },
@@ -153,7 +153,7 @@ function configurationMetadataDefinitions() {
         module: uiField("Array", "可访问页面", {
           targetClass: "Module",
           isPointer: true,
-          editComponent: "ASelect",
+          editComponent: "ElSelect",
           componentOption: { mode: "multiple", selectTable: "Module" },
         }),
         positionManaged: uiField("Boolean", "由岗位管理维护", { defaultValue: false }),
@@ -168,17 +168,17 @@ function configurationMetadataDefinitions() {
         role: uiField("Pointer", "岗位", {
           targetClass: "Role",
           isPointer: true,
-          editComponent: "ASelect",
+          editComponent: "ElSelect",
           componentOption: { selectTable: "Role" },
         }),
         routes: uiField("Array", "页面", {
           targetClass: "Route",
           isPointer: true,
-          editComponent: "ASelect",
+          editComponent: "ElSelect",
           componentOption: { mode: "multiple", selectTable: "Route" },
         }),
-        permissions: uiField("Array", "按钮权限", { editComponent: "ASelect", componentOption: { mode: "tags" } }),
-        routePermissions: uiField("Object", "逐页按钮权限", { editComponent: "AInput" }),
+        permissions: uiField("Array", "按钮权限", { editComponent: "ElSelect", componentOption: { mode: "tags" } }),
+        routePermissions: uiField("Object", "逐页按钮权限", { editComponent: "ElInput" }),
         positionManaged: uiField("Boolean", "由岗位管理维护", { defaultValue: false }),
       },
     },
@@ -193,7 +193,7 @@ function configurationMetadataDefinitions() {
         parent: uiField("Pointer", "上级组织", {
           targetClass: ORGANIZATION_CLASS,
           isPointer: true,
-          editComponent: "ATreeSelect",
+          editComponent: "ElTreeSelect",
           componentOption: { selectTable: ORGANIZATION_CLASS },
         }),
         rank: uiField("Number", "排序", { defaultValue: 0, isTable: true }),
@@ -420,6 +420,23 @@ async function ensureSystemConfiguration(auth) {
     targetClass: "_User",
     remark: "查看在线成员并执行强制下线与账号冻结",
   });
+  const collabRoute = await ensureRecord("Route", "collab.spreadsheet", company, {
+    name: "协同表格",
+    path: "spreadsheet",
+    rank: 1,
+    menu: true,
+    pageComponent: "/collab/spreadsheet/index",
+    targetClass: "CollabDocument",
+    remark: "管理企业内协同工作簿、成员权限和版本",
+  });
+  const collabModule = await ensureRecord("Module", "collab.workspace", company, {
+    name: "协同办公",
+    path: "collab",
+    rank: 8,
+    menu: true,
+    icon: "Grid",
+    remark: "企业内登录成员使用的协同表格",
+  });
   const systemModule = await ensureRecord("Module", "system.management", company, {
     name: "系统管理",
     path: "system",
@@ -437,6 +454,7 @@ async function ensureSystemConfiguration(auth) {
     positionRoute.record,
     onlineMemberRoute.record,
   ]);
+  const collabLinksChanged = await ensurePointers(collabModule.record, "routes", [collabRoute.record]);
   if (homeRoute.created) result.created.push("Route:home");
   else if (homeRoute.changed) result.updated.push("Route:home");
   if (homeModule.created) result.created.push("Module:home");
@@ -453,6 +471,10 @@ async function ensureSystemConfiguration(auth) {
   else if (positionRoute.changed) result.updated.push("Route:position");
   if (onlineMemberRoute.created) result.created.push("Route:online-member");
   else if (onlineMemberRoute.changed) result.updated.push("Route:online-member");
+  if (collabRoute.created) result.created.push("Route:collab.spreadsheet");
+  else if (collabRoute.changed) result.updated.push("Route:collab.spreadsheet");
+  if (collabModule.created) result.created.push("Module:collab");
+  else if (collabModule.changed || collabLinksChanged) result.updated.push("Module:collab");
   if (systemModule.created) result.created.push("Module:system");
   else if (systemModule.changed || linksChanged) result.updated.push("Module:system");
   clearSchemaCache();
