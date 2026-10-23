@@ -445,6 +445,42 @@ async function ensureSystemConfiguration(auth) {
     icon: "SettingOutlined",
     remark: "仅系统管理员可维护的基础配置",
   });
+  const cameraRoute = await ensureRecord("Route", "system.camera", company, {
+    name: "设备管理",
+    path: "devices",
+    rank: 2,
+    menu: true,
+    pageComponent: "/camera/devices/index",
+    targetClass: "CameraDevice",
+    remark: "局域网 IPC 管理、实时预览、服务器录像与设备历史回放",
+  });
+  // 保留旧 Route objectId 和权限关联，只迁移平台旧默认入口；自定义页面配置不做覆盖。
+  if (cameraRoute.record.get("pageComponent") === "/system/camera/index") {
+    cameraRoute.record.set({ name: "设备管理", path: "devices", rank: 2, pageComponent: "/camera/devices/index" });
+    await cameraRoute.record.save(null, master);
+    cameraRoute.changed = true;
+  }
+  const cameraModule = await ensureRecord("Module", "camera.workspace", company, {
+    name: "摄像头管理", path: "camera", rank: 9, menu: true, icon: "VideoCamera",
+    remark: "视频组织、设备、成员和多画面视频中心",
+  });
+  const cameraRoutes = [cameraRoute.record];
+  for (const definition of [
+    { key: "camera.organizations", name: "组织管理", path: "organizations", rank: 1, targetClass: "CameraOrganization" },
+    { key: "camera.members", name: "成员管理", path: "members", rank: 3, targetClass: "CameraMember" },
+    { key: "camera.video", name: "视频中心", path: "video", rank: 4, targetClass: "CameraVideo" },
+  ]) {
+    const ensured = await ensureRecord("Route", definition.key, company, {
+      name: definition.name, path: definition.path, rank: definition.rank, menu: true,
+      targetClass: definition.targetClass, pageComponent: `/camera/${definition.path}/index`,
+      remark: "摄像头独立模块页面，按岗位按钮与视频组织范围授权",
+    });
+    cameraRoutes.push(ensured.record);
+    if (ensured.created) result.created.push(`Route:${definition.key}`);
+  }
+  const cameraLinksChanged = await ensurePointers(cameraModule.record, "routes", cameraRoutes);
+  if (cameraModule.created) result.created.push("Module:camera");
+  else if (cameraLinksChanged) result.updated.push("Module:camera");
   const homeLinksChanged = await ensurePointers(homeModule.record, "routes", [homeRoute.record]);
   const linksChanged = await ensurePointers(systemModule.record, "routes", [
     moduleRoute.record,
@@ -454,7 +490,15 @@ async function ensureSystemConfiguration(auth) {
     positionRoute.record,
     onlineMemberRoute.record,
   ]);
+  const systemRoutes = systemModule.record.get("routes") || [];
+  if (systemRoutes.some((item) => pointerId(item) === cameraRoute.record.id)) {
+    systemModule.record.set("routes", systemRoutes.filter((item) => pointerId(item) !== cameraRoute.record.id));
+    await systemModule.record.save(null, master);
+    result.updated.push("Module:system.camera-moved");
+  }
   const collabLinksChanged = await ensurePointers(collabModule.record, "routes", [collabRoute.record]);
+  if (cameraRoute.created) result.created.push("Route:camera");
+  else if (cameraRoute.changed) result.updated.push("Route:camera");
   if (homeRoute.created) result.created.push("Route:home");
   else if (homeRoute.changed) result.updated.push("Route:home");
   if (homeModule.created) result.created.push("Module:home");

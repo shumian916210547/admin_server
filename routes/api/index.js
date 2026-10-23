@@ -78,6 +78,10 @@ const {
   handleOfficeCallback,
 } = require("../../services/collab-office.service");
 const collabStorage = require("../../services/collab-storage.service");
+const cameras = require("../../services/camera.service");
+const cameraNetwork = require("../../services/camera-network.service");
+const cameraMedia = require("../../services/camera-media.service");
+const cameraWorkspace = require("../../services/camera-workspace.service");
 
 const router = express.Router();
 const tempDirectory = path.join(config.upload.storageDir, ".tmp");
@@ -960,5 +964,232 @@ router.get(
     res.sendFile(filePath);
   })
 );
+
+/** IPC 发现、ONVIF 和转码均限制速率；鉴权在 limiter 前，拒绝未登录用户占用局域网资源。 */
+const cameraLimiter = rateLimit({ windowMs: 60000, limit: 20, standardHeaders: "draft-8", legacyHeaders: false, message: { error: { code: "CAMERA_RATE_LIMIT", message: "摄像头操作过于频繁，请稍后重试" } } });
+/** 十六分屏允许每分钟 120 次受认证的流启动，按用户隔离；数据库/媒体层另外限制并发。 */
+const cameraStreamLimiter = rateLimit({ windowMs: 60000, limit: 120, keyGenerator: (req) => `${req.auth.companyId}:${req.auth.userId}`, standardHeaders: "draft-8", legacyHeaders: false, message: { error: { code: "CAMERA_RATE_LIMIT", message: "视频连接重试过于频繁，请稍后再试" } } });
+
+router.get("/cameras", asyncHandler(
+  /**
+   * 读取当前企业设备和部署状态。
+   * @param {import("express").Request} req 必填，可信会话，不接受 companyId。
+   * @param {import("express").Response} res 必填，返回脱敏列表，权限错误由统一中间件处理。
+   * @returns {Promise<void>} 无写入；可能 403/503。
+   */
+  async (req, res) => { res.json({ data: await cameras.list(req.auth, req.query) }); }
+));
+router.post("/cameras/discover", csrfGuard, cameraLimiter, asyncHandler(
+  /**
+   * 在 BFF 所在局域网发送 ONVIF Probe，不自动保存或修改发现的设备。
+   * @param {import("express").Request} req 必填，需 insert 权限和 CSRF。
+   * @param {import("express").Response} res 必填，返回发现列表和本地协议提示。
+   * @returns {Promise<void>} 发送 UDP，可能 403/503。
+   */
+  async (req, res) => { await cameras.authorize(req.auth, "insert"); res.json({ data: { devices: await cameraNetwork.discover() } }); }
+));
+router.post("/cameras", csrfGuard, cameraLimiter, asyncHandler(
+  /**
+   * 关联设备并加密凭据。
+   * @param {import("express").Request} req 必填，body 为摄像头配置，需 insert 权限。
+   * @param {import("express").Response} res 必填，返回新 UUID，不回显密码。
+   * @returns {Promise<void>} 写入设备表，可能 400/403/409/503。
+   */
+  async (req, res) => { res.status(201).json({ data: await cameras.save(req.auth, req.body) }); }
+));
+router.get("/cameras/:id", asyncHandler(
+  /**
+   * 读取编辑表单字段。
+   * @param {import("express").Request} req 必填，params.id 为 UUID，需 edit 权限。
+   * @param {import("express").Response} res 必填，返回账号与配置，密码为空。
+   * @returns {Promise<void>} 无写入，可能 403/404/503。
+   */
+  async (req, res) => { res.json({ data: await cameras.detail(req.auth, req.params.id) }); }
+));
+router.put("/cameras/:id", csrfGuard, cameraLimiter, asyncHandler(
+  /**
+   * 更新设备后停止旧连接，新录像由守护任务恢复。
+   * @param {import("express").Request} req 必填，UUID、完整配置和 CSRF，需 edit 权限。
+   * @param {import("express").Response} res 必填，返回保存的 UUID。
+   * @returns {Promise<void>} 写表和停止转码，丢弃当前未完成录像段；可能 400/403/404/409/503。
+   */
+  async (req, res) => { const result = await cameras.save(req.auth, req.body, req.params.id); if (result.restartMedia) await cameraMedia.stopDevice(result.id); res.json({ data: result }); }
+));
+router.delete("/cameras/:id", csrfGuard, asyncHandler(
+  /**
+   * 解除设备关联并释放媒体任务，已完成录像按保留期清理。
+   * @param {import("express").Request} req 必填，UUID，需 remove 权限和 CSRF。
+   * @param {import("express").Response} res 必填，返回删除结果。
+   * @returns {Promise<void>} 删除配置与凭据，可能 403/404/503。
+   */
+  async (req, res) => { await cameras.remove(req.auth, req.params.id); await cameraMedia.stopDevice(req.params.id); res.json({ data: { removed: true } }); }
+));
+router.post("/cameras/:id/probe", csrfGuard, cameraLimiter, asyncHandler(
+  /**
+   * 探测已保存设备的本地媒体配置。
+   * @param {import("express").Request} req 必填，UUID，需 edit 权限与 CSRF。
+   * @param {import("express").Response} res 必填，返回可选通道的脱敏 RTSP 路径。
+   * @returns {Promise<void>} 访问设备，可能 400/403/404/502。
+   */
+  async (req, res) => { res.json({ data: await cameras.probe(req.auth, req.params.id) }); }
+));
+router.put("/cameras/:id/cover", csrfGuard, asyncHandler(
+  /**
+   * 设置或清除封面，不公开静态资源。
+   * @param {import("express").Request} req 必填，UUID 和含 data/type 或 clear=true 的 JSON，需 edit 权限。
+   * @param {import("express").Response} res 必填，返回保存结果。
+   * @returns {Promise<void>} 更新封面，可能 400/403/404/503。
+   */
+  async (req, res) => { await cameras.setCover(req.auth, req.params.id, req.body); res.json({ data: { saved: true } }); }
+));
+router.get("/cameras/:id/cover", asyncHandler(
+  /**
+   * 按租户和页面权限返回封面图片，禁止缓存敏感场景图片。
+   * @param {import("express").Request} req 必填，UUID，需 query 权限。
+   * @param {import("express").Response} res 必填，二进制响应及可信 MIME。
+   * @returns {Promise<void>} 无写入；可能 403/404/503。
+   */
+  async (req, res) => { await cameras.authorize(req.auth); const camera = await cameras.get(req.auth, req.params.id); if (!camera.cover) throw notFound("未设置摄像头封面"); res.set("Cache-Control", "private, no-store").type(camera.cover_type).send(camera.cover); }
+));
+router.post("/cameras/:id/streams", csrfGuard, cameraStreamLimiter, asyncHandler(
+  /**
+   * 启动实时或设备回放会话；用户绑定的播放文件仍逐请求鉴权。
+   * @param {import("express").Request} req 必填，UUID；body.mode 为 live/device，device 需时段和 token/通道。
+   * @param {import("express").Response} res 必填，返回同源 HLS 地址，无设备凭据。
+   * @returns {Promise<void>} 启动 FFmpeg/回放桥并写临时文件，可能 400/403/404/429/502/503。
+   */
+  async (req, res) => {
+    if (req.body?.mode && !["live", "device"].includes(req.body.mode)) throw badRequest("播放模式无效");
+    const controller = new AbortController();
+    /** 无参数；返回 void，客户端在清单准备期间断开时取消媒体启动，不将正常响应结束当作取消。 */
+    const disconnected = () => { if (!res.writableEnded) controller.abort(); };
+    res.once("close", disconnected);
+    if (res.destroyed) controller.abort();
+    try {
+      const stream = await cameraMedia.startStream(req.auth, req.params.id, req.body || {}, controller.signal);
+      if (controller.signal.aborted) { await cameraMedia.stopStream(req.auth, req.params.id, stream.id); return; }
+      res.status(201).json({ data: stream });
+    } catch (error) {
+      // 客户端已经离开时，服务已清理任务且无响应接收者；其余错误继续进入统一错误路径。
+      if (!controller.signal.aborted) throw error;
+    } finally { res.off("close", disconnected); }
+  }
+));
+router.delete("/cameras/:id/streams/:streamId", csrfGuard, asyncHandler(
+  /**
+   * 关闭当前用户的预览或回放。
+   * @param {import("express").Request} req 必填，设备和流 UUID，需 query 权限及 CSRF。
+   * @param {import("express").Response} res 必填，返回停止结果。
+   * @returns {Promise<void>} 杀进程并删除临时文件，可能 403/404。
+   */
+  async (req, res) => { await cameraMedia.stopStream(req.auth, req.params.id, req.params.streamId); res.json({ data: { stopped: true } }); }
+));
+router.get("/cameras/:id/streams/:streamId/:filename", asyncHandler(
+  /**
+   * 返回受保护的播放清单和片段；文件名受固定格式限制。
+   * @param {import("express").Request} req 必填，设备 UUID、流 UUID 与受限文件名。
+   * @param {import("express").Response} res 必填，HLS 响应，由 sendFile 处理文件与 Range。
+   * @returns {Promise<void>} 更新访问时间，可能 403/404/502。
+   */
+  async (req, res) => { const file = await cameraMedia.streamFile(req.auth, req.params.id, req.params.streamId, req.params.filename); res.set("Cache-Control", "private, no-store"); res.type(req.params.filename.endsWith("m3u8") ? "application/vnd.apple.mpegurl" : "video/mp2t"); res.sendFile(file); }
+));
+router.get("/cameras/:id/recordings", asyncHandler(
+  /**
+   * 获取服务器已完成录像列表和录像运行状态。
+   * @param {import("express").Request} req 必填，设备 UUID，需 query 权限。
+   * @param {import("express").Response} res 必填，返回录像列表，不返回存储路径。
+   * @returns {Promise<void>} 无写入；可能 403/404/503。
+   */
+  async (req, res) => { res.json({ data: await cameraMedia.listRecordings(req.auth, req.params.id) }); }
+));
+router.get("/cameras/:id/recordings/:filename", asyncHandler(
+  /**
+   * 回放服务器录像，每次 Range 请求重新验证权限和租户。
+   * @param {import("express").Request} req 必填，设备 UUID 和生成的 mp4 文件名。
+   * @param {import("express").Response} res 必填，MP4 响应，支持浏览器拖动进度。
+   * @returns {Promise<void>} 无写入；可能 403/404。
+   */
+  async (req, res) => { const file = await cameraMedia.recordingFile(req.auth, req.params.id, req.params.filename); res.set("Cache-Control", "private, no-store").type("video/mp4"); res.sendFile(file); }
+));
+router.post("/cameras/:id/device-recordings", csrfGuard, cameraLimiter, asyncHandler(
+  /**
+   * 查询设备 SD 卡/NVR 的 ONVIF 录像 token，或返回厂商回放能力说明。
+   * @param {import("express").Request} req 必填，设备 UUID，需 query 权限及 CSRF。
+   * @param {import("express").Response} res 必填，返回设备录像配置。
+   * @returns {Promise<void>} 访问设备 ONVIF 服务；可能 400/403/404/502。
+   */
+  async (req, res) => { res.json({ data: await cameraMedia.deviceRecordings(req.auth, req.params.id) }); }
+));
+
+/**
+ * 统一包装视频模块的 JSON 处理器；所有处理器位于 router.use(authenticate) 之后，写路由单独加 CSRF。
+ * @param {(req:import("express").Request)=>Promise<unknown>} work 必填，读取参数、委托服务的轻量处理器。
+ * @returns {Function} async-handler 包装的 Express 路由处理器；服务错误进入统一中间件。
+ */
+function cameraJson(work) {
+  return asyncHandler(async (req, res) => { res.set("Cache-Control", "private, no-store").json({ data: await work(req) }); });
+}
+
+// 以下每项的参数格式、授权前提、返回值和副作用由对应 camera-workspace 服务函数的 JSDoc 定义。
+router.get("/camera-workspace/overview", cameraJson(
+  /** @param {import("express").Request} req 已认证请求，无查询参数。 @returns {Promise<object>} 可见组织树和权限，无写入。 */
+  (req) => cameraWorkspace.overview(req.auth)
+));
+router.post("/camera-workspace/streams/close", csrfGuard, cameraJson(
+  /** @param {import("express").Request} req body.streams为最多64条UUID，需认证/CSRF。 @returns {Promise<object>} 释放当前用户自己的媒体连接数量，不接受其他用户身份。 */
+  (req) => cameraMedia.stopOwnedStreams(req.auth, req.body)
+));
+router.post("/camera-workspace/organizations", csrfGuard, cameraJson(
+  /** @param {import("express").Request} req body 为组织表单。 @returns {Promise<object>} 新增组织，需 insert 权限。 */
+  (req) => cameraWorkspace.saveOrganization(req.auth, req.body)
+));
+router.put("/camera-workspace/organizations/:id", csrfGuard, cameraJson(
+  /** @param {import("express").Request} req UUID 和组织表单。 @returns {Promise<object>} 更新节点，需 edit 权限并阻止循环。 */
+  (req) => cameraWorkspace.saveOrganization(req.auth, req.body, req.params.id)
+));
+router.delete("/camera-workspace/organizations/:id", csrfGuard, cameraJson(
+  /** @param {import("express").Request} req params.id 为组织 UUID。 @returns {Promise<void>} 删除空节点，需 remove 权限。 */
+  (req) => cameraWorkspace.removeOrganization(req.auth, req.params.id)
+));
+router.post("/camera-workspace/devices/assign", csrfGuard, cameraJson(
+  /** @param {import("express").Request} req body.deviceIds/organizationId。 @returns {Promise<object>} 原子批量归属数量，需设备 edit 权限。 */
+  (req) => cameraWorkspace.assignDevices(req.auth, req.body)
+));
+router.get("/camera-workspace/members/options", cameraJson(
+  /** @param {import("express").Request} req 可选 query.keyword 最多64字符。 @returns {Promise<object[]>} 同租户账号选项，需管理员 insert 权限。 */
+  (req) => cameraWorkspace.memberOptions(req.auth, req.query.keyword)
+));
+router.get("/camera-workspace/members", cameraJson(
+  /** @param {import("express").Request} req 已认证请求。 @returns {Promise<object>} 可见成员关系和脱敏资料，需成员 query 权限。 */
+  (req) => cameraWorkspace.members(req.auth)
+));
+router.post("/camera-workspace/members", csrfGuard, cameraJson(
+  /** @param {import("express").Request} req body 为关联账号或创建账号及视频组织。 @returns {Promise<object>} 新成员关系，需管理员 insert 权限。 */
+  (req) => cameraWorkspace.saveMember(req.auth, req.body)
+));
+router.put("/camera-workspace/members/:id", csrfGuard, cameraJson(
+  /** @param {import("express").Request} req UUID 和成员组织/范围/状态表单。 @returns {Promise<object>} 更新授权，需管理员 edit 权限。 */
+  (req) => cameraWorkspace.saveMember(req.auth, req.body, req.params.id)
+));
+router.delete("/camera-workspace/members/:id", csrfGuard, cameraJson(
+  /** @param {import("express").Request} req UUID。 @returns {Promise<void>} 删除视频成员授权，保留平台账号，需管理员 remove 权限。 */
+  (req) => cameraWorkspace.removeMember(req.auth, req.params.id)
+));
+router.get("/camera-workspace/activity", cameraJson(
+  /** @param {import("express").Request} req 已认证请求。 @returns {Promise<object[]>} 同企业最新100条审计，仅管理员。 */
+  (req) => cameraWorkspace.activity(req.auth)
+));
+router.get("/camera-workspace/views", cameraJson(
+  /** @param {import("express").Request} req 已认证请求。 @returns {Promise<object[]>} 当前用户最多20个个人视图，需视频 query 权限。 */
+  (req) => cameraWorkspace.views(req.auth)
+));
+router.post("/camera-workspace/views", csrfGuard, cameraJson(
+  /** @param {import("express").Request} req body.name/screens/devices。 @returns {Promise<object>} 保存当前用户的1–16屏视图，需视频 query 权限。 */
+  (req) => cameraWorkspace.saveView(req.auth, req.body)
+));
+router.delete("/camera-workspace/views/:id", csrfGuard, cameraJson(
+  /** @param {import("express").Request} req 个人视图 UUID。 @returns {Promise<void>} 幂等删除自己的视图，需视频 query 权限。 */
+  (req) => cameraWorkspace.removeView(req.auth, req.params.id)
+));
 
 module.exports = router;

@@ -10,8 +10,9 @@ admin_server/
 ├─ lib/                          # async handler、HTTP 错误、日志
 ├─ middleware/                   # 请求上下文、Origin/CSRF、认证
 ├─ routes/api/                   # 当前启用的 BFF API
-├─ services/                     # 会话/在线成员、数据、Schema、协同文档与 Parse Server 服务
+├─ services/                     # 会话/在线成员、数据、Schema、协同文档、camera 本地接入/媒体与 Parse Server 服务
 ├─ migrations/collab/             # 协同 PostgreSQL Schema 迁移
+├─ migrations/camera/             # IPC 私有 PostgreSQL Schema 迁移
 ├─ scripts/                      # 初始化、检查、权限加固
 ├─ docs/                         # 架构与安全说明
 ├─ app-factory.js                # 公共 Express 应用工厂

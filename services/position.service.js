@@ -56,6 +56,10 @@ const BUTTON_PERMISSION_SET = new Set(BUTTON_PERMISSION_CODES);
  * 动态 Wrapper 页面使用 DEFAULT_PAGE_BUTTON_PERMISSION_CODES，未知自定义组件只开放 query，避免凭空分配按钮。
  */
 const PAGE_BUTTON_PERMISSION_CODES = Object.freeze({
+  "camera.organizations": Object.freeze(["permission:query", "permission:insert", "permission:edit", "permission:remove"]),
+  "camera.members": Object.freeze(["permission:query", "permission:insert", "permission:edit", "permission:remove"]),
+  "camera.video": Object.freeze(["permission:query"]),
+  "system.camera": Object.freeze(["permission:query", "permission:insert", "permission:edit", "permission:remove"]),
   "system.home.page": Object.freeze(["permission:query"]),
   "system.module": Object.freeze([
     "permission:query",
@@ -98,6 +102,11 @@ const PAGE_BUTTON_PERMISSION_CODES = Object.freeze({
 });
 /** 旧租户可能缺少 systemKey，按受控系统页面组件路径提供同等的按钮权限映射。 */
 const PAGE_BUTTON_COMPONENT_KEYS = Object.freeze({
+  "/camera/organizations/index": "camera.organizations",
+  "/camera/members/index": "camera.members",
+  "/camera/video/index": "camera.video",
+  "/camera/devices/index": "system.camera",
+  "/system/camera/index": "system.camera",
   "/home": "system.home.page",
   "/system/module/index": "system.module",
   "/system/table/index": "system.schema",

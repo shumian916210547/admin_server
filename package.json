@@ -41,13 +41,16 @@
     "security:harden": "node scripts/harden-parse.js",
     "security:check": "node scripts/security-check.js",
     "check": "node scripts/check.js",
-    "audit:prod": "npm audit --omit=dev --audit-level=high"
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
+    "migrate:camera": "node scripts/migrate-camera.js",
+    "test:camera": "node scripts/camera-test.js"
   },
   "dependencies": {
     "axios": "^1.19.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.2",
+    "fast-xml-parser": "^5.11.2",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.30.1",

@@ -8,6 +8,8 @@ initializeParse();
 const master = { useMasterKey: true };
 const CLASS_NAME_PATTERN = /^_?[A-Za-z][A-Za-z0-9_]*$/;
 const BLOCKED_CLASSES = new Set([
+  "CameraOrganization", "CameraMember", "CameraVideo",
+  "CameraDevice",
   "LoginActivity",
   "AdminSession",
   "_Session",
@@ -17,6 +19,8 @@ const BLOCKED_CLASSES = new Set([
   "_JobStatus",
 ]);
 const PROTECTED_SCHEMA_CLASSES = new Set([
+  "CameraOrganization", "CameraMember", "CameraVideo",
+  "CameraDevice",
   "LoginActivity",
   "AdminSession",
   "Company",
@@ -410,6 +414,15 @@ function hasQueryConditions(query) {
   return Object.keys(query.toJSON().where || {}).length > 0;
 }
 
+/**
+ * 按服务端 Company、岗位页面分配与逐页面按钮权限校验数据/领域操作，管理员沿用平台授权规则。
+ * 领域服务可使用受保护的虚拟 targetClass（如 CameraDevice）复用 RBAC；本方法不会绕过通用 API 的类名白名单。
+ * @param {object} auth 必填，可信认证上下文，包含 companyId、roleId、role、isAdmin。
+ * @param {string} className 必填，已由调用方约束的数据类名或领域权限目标，对应 Route.targetClass。
+ * @param {string} action 必填，query/insert/edit/remove 等动作，不含 permission: 前缀。
+ * @returns {Promise<void>} 授权通过时兑现，仅查询真实 Route/Role/AllotPermission，无写入。
+ * @throws {import("../lib/http-error").HttpError} 未分配页面、按钮或配置操作不允许时 403；数据源异常继续抛出。
+ */
 async function authorizeAction(auth, className, action) {
   if (className === ORGANIZATION_CLASS && action !== "query") {
     throw forbidden("组织节点只能通过受控组织管理接口维护");
@@ -900,4 +913,5 @@ module.exports = {
   hardenAllClassPermissions,
   clearSchemaCache,
   assertUserInTenant,
+  authorizeAction,
 };

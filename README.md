@@ -10,6 +10,10 @@ Shumian Vue Admin 的后端服务。当前运行架构是 **Express BFF + 内网
 
 ## 当前能力
 
+- 摄像头独立模块：`/api/camera-workspace` 维护公司/组织/门店、成员组织范围、批量设备归属、个人1–16屏视图与脱敏审计；页面RBAC与视频组织范围同时生效。`CAMERA_MAX_LIVE_STREAMS=32` 为预览/设备回放独立额度，`CAMERA_MAX_STREAMS=8` 为服务器录像额度。升级执行 `npm run migrate:camera` 后重启，详见 [独立模块指南](docs/CAMERA_WORKSPACE_GUIDE.md)。
+
+- 局域网 IPC：`/api/cameras` 提供设备与封面管理、WS-Discovery、ONVIF 媒体探测、RTSP 转 H.264 HLS、服务器分段录像/Range 回放，以及 Profile G/海康/大华设备历史回放。凭据 AES-GCM 加密，媒体逐请求校验 RBAC、Company 和流所属用户。部署需 FFmpeg、`CAMERA_ENCRYPTION_KEY` 与 `npm run migrate:camera`；`CAMERA_STORAGE_DIR`、`CAMERA_ALLOWED_CIDRS`、`CAMERA_MAX_STREAMS`、`CAMERA_MAX_STORAGE_MB`、`CAMERA_RETENTION_DAYS` 见 `.env.example`。`npm run test:camera` 执行隔离回归，完整步骤和品牌限制见 [IPC 指南](docs/IPC_CAMERA_GUIDE.md)。
+
 - 安全登录、会话恢复与退出：HttpOnly、SameSite=Strict Cookie，写操作校验 CSRF。
 - 在线成员会话治理：私有 `AdminSession` 记录设备摘要、心跳和滑动过期时间；管理员可强制撤销目标成员全部会话或按分钟冻结账号。
 - 个人工作台统计：成功登录后以私有 `LoginActivity` 记录当前用户活动，BFF 仅返回本人登录趋势、活跃天数和会话起点汇总。
@@ -115,7 +119,7 @@ ONLYOFFICE 的浏览器地址必须能被前端访问，BFF 地址必须能访�
 | `POST` | `/api/collab/documents/:id/versions/:versionId/restore` | 从历史版本生成新的当前版本。 |
 | `GET/POST` | `/api/collab/office/files/:documentId`、`/callback/:documentId` | ONLYOFFICE 短时签名文件读取和保存回调，不使用浏览器会话。 |
 
-完整的操作说明和 API 约束见 [系统使用文档](../docs/SYSTEM_USAGE.md)。
+完整的操作说明和 API 约束见 [系统使用文档](docs/SYSTEM_USAGE.md)。
 
 ## 后端结构
 
@@ -126,6 +130,7 @@ admin_server/
 ├─ routes/api/                   # 当前启用的 BFF 路由
 ├─ services/                     # 会话、Parse 数据、Schema、协同文档与运行时服务
 ├─ migrations/collab/             # 协同 PostgreSQL Schema 迁移
+├─ migrations/camera/             # 摄像头设备、组织、成员、视图与审计迁移
 ├─ lib/                          # async handler、错误、日志
 ├─ scripts/                      # 初始化、检查、CLP 加固
 ├─ docs/                         # 架构与安全说明
@@ -134,6 +139,12 @@ admin_server/
 ```
 
 仓库中保留的 `controller/`、`routes/admin/`、`routes/cmn/`、`routes/miniapp/` 等为历史代码，当前 `app-factory.js` 未挂载它们。新增功能必须实现到 `routes/api/` 并使用 `authenticate`、`csrfGuard`、`async-handler` 和 `services/`。
+
+## 摄像头验证记录
+
+- [最终27组验证记录](docs/CAMERA_WORKSPACE_TEST_REPORT.md)：权限、双来源录像、1–16分屏及资源释放；含硬件验收和现有依赖审计限制。
+- [基础接入验证记录](docs/IPC_CAMERA_TEST_REPORT.md)：基础协议、设备模拟和录像回放。
+
 
 ## 质量与安全检查
 

@@ -46,6 +46,14 @@ flowchart LR
 
 ## 运行约束
 
+- 摄像头独立模块包含 `CameraOrganization`、`CameraDevice`、`CameraMember`、`CameraVideo` 四个受保护权限目标。组织/成员/设备归属保存在私有 `camera` Schema，平台 Company 是租户边界，普通账号同时受真实页面RBAC与视频成员归属/下级范围限制；没有有效视频成员关系时无设备访问。读取HLS/MP4/封面每次重新校验，移除成员或停用祖先节点后旧媒体URL也会失效。释放自己创建的媒体连接只需所有权，避免撤权后无法清理任务。
+- `camera.organizations` 的父节点、设备归属和成员归属使用含 `company_id` 的复合外键，组织移动和成员授权通过企业级事务锁串行，避免并发产生环路。旧设备不自动推断组织，未分配项仅平台管理员可维护；旧设备Route保持objectId并迁入 `camera.workspace` 模块。
+- 视频中心支持任意1–16分屏。预览/设备回放用 `CAMERA_MAX_LIVE_STREAMS`（默认32）独立配额，服务器录像用 `CAMERA_MAX_STREAMS`（默认8）；每浏览器同时启动最多4条。个人视图仅保存当前用户的设备UUID/分屏数，每次读取按当前权限裁剪；审计只写明确动作和脱敏摘要，保留每企业最新10000条。详见 [独立模块指南](CAMERA_WORKSPACE_GUIDE.md)。
+
+- IPC 设备由私有 PostgreSQL `camera.devices` 保存（`migrations/camera`），不会映射成可由通用 Parse API 访问的业务表；`CameraDevice` 是受保护的权限目标，保留 `system.camera` Route 的标识并指向 `/camera/devices/index`。服务端复用页面 RBAC，所有记录固定绑定 `req.auth.companyId`；跨租户媒体和封面均拒绝访问。设备凭据使用独立 `CAMERA_ENCRYPTION_KEY` 进行 AES-256-GCM 加密。
+- `camera-network.service` 仅接受白名单私网 IPv4，在服务端执行有界 WS-Discovery 与 ONVIF HTTP SOAP（WS-Security / HTTP Digest），不跟随 HTTP 重定向；设备返回的服务和 RTSP 地址必须同 IP。`camera-media.service` 用无 shell 的 FFmpeg 进程输出私有 HLS/MP4；`camera-replay.service` 提供仅环回监听的单连接 Profile G RTSP 桥，重算 Digest 并注入绝对 UTC 回放范围。需使用网络出口限制约束不可信设备的 RTSP 重定向。
+- IPC 默认单 BFF 实例、最多8个录像任务与32个独立实时预览/设备回放任务，设备配置每企业最多500条。录像每段最长五分钟/128 MiB，保留期与配额自动清理最旧完整段；未完成段在退出或更换连接配置时丢弃。回放 HLS 缓存有额外磁盘占用，真实设备协议支持需逐型号验收。完整部署和功能边界见 [IPC 指南](IPC_CAMERA_GUIDE.md)。
+
 - `npm run audit:prod` 必须保持无 high / critical；CI 会执行此检查。
 - Dashboard 若确有运维需要，应作为独立、短时、私网工具运行，不得挂载到业务域名。
 - 协同文件默认位于 `resources/collab`，必须位于静态资源根目录之外；生产环境应替换为受控、可备份的对象存储或共享存储。

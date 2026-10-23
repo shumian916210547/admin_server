@@ -4,6 +4,7 @@ const { config } = require("./config/env");
 const logger = require("./lib/logger");
 const { createPublicApp } = require("./app-factory");
 const { createParseServer } = require("./services/parse-runtime");
+const cameraMedia = require("./services/camera-media.service");
 
 function listen(server, port, host) {
   return new Promise((resolve, reject) => {
@@ -29,6 +30,19 @@ async function start() {
   const publicApp = createPublicApp();
   const publicServer = http.createServer(publicApp);
   await listen(publicServer, config.port, "0.0.0.0");
+  cameraMedia.startWorker();
+  /**
+   * 在 SIGINT/SIGTERM 时先释放摄像头媒体，再关闭 HTTP 服务。
+   * @returns {Promise<void>} 关闭网络服务并结束当前进程；未完成录像段不保留。
+   */
+  async function shutdown() {
+    await cameraMedia.close();
+    publicServer.close();
+    internalServer.close();
+    process.exit(0);
+  }
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
 
   logger.info("server.started", {
     environment: config.environment,
