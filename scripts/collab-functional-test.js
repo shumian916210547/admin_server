@@ -12,7 +12,8 @@ const path = require("path");
 
 const { queryCollab } = require("../services/collab-database.service");
 
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
+// 与 BFF 使用同一 ENV_FILE，隔离回归不得补读工作区真实 .env 中的配置。
+dotenv.config({ path: process.env.ENV_FILE || path.resolve(__dirname, "../.env") });
 
 const apiBaseUrl = `http://127.0.0.1:${process.env.PORT || 3000}`;
 const browserOrigin = process.env.PUBLIC_ORIGIN || "http://localhost:4200";

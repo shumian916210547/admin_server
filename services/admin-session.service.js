@@ -204,6 +204,25 @@ async function validateAndTouchAdminSession(session, auth, req) {
 }
 
 /**
+ * 撤销主动退出的当前会话，保留撤销标记，确保旧 Cookie 不能重新登记并恢复使用。
+ * @param {{companyId: string, userId: string, sessionId: string}} auth 必填，authenticate 已验证的企业、用户和 JWT jti。
+ * @returns {Promise<void>} 仅撤销当前设备会话，不影响同账号其他会话；写入失败则拒绝退出成功响应。
+ * @throws {import("../lib/http-error").HttpError} 会话缺失为 401；Schema 或存储失败继续抛出，由路由统一处理。
+ */
+async function revokeCurrentAdminSession(auth) {
+  await ensureAdminSessionInfrastructure();
+  const query = new Parse.Query(ADMIN_SESSION_CLASS);
+  query.equalTo("company", pointer("Company", auth.companyId));
+  query.equalTo("user", pointer("_User", auth.userId));
+  query.equalTo("sessionId", auth.sessionId);
+  const record = await query.first(master);
+  if (!record) throw unauthorized("Your session is unavailable");
+  record.set("revokedAt", new Date());
+  record.set("revokedReason", "用户主动退出");
+  await record.save(null, master);
+}
+
+/**
  * 规范化在线成员操作目标，确保目标用户属于当前企业且不是被伪造的跨租户用户。
  * @param {{companyId: string, isAdmin?: boolean}} auth 当前管理员认证上下文。
  * @param {unknown} userId URL 中的目标成员 objectId。
@@ -298,6 +317,7 @@ module.exports = {
   ensureAdminSessionInfrastructure,
   registerAdminSession,
   validateAndTouchAdminSession,
+  revokeCurrentAdminSession,
   listOnlineMemberSessions,
   forceLogoutOnlineMember,
   freezeOnlineMember,

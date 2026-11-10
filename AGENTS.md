@@ -13,7 +13,7 @@ admin_server/
 ├─ services/                     # 会话/在线成员、数据、Schema、协同文档、camera 本地接入/媒体与 Parse Server 服务
 ├─ migrations/collab/             # 协同 PostgreSQL Schema 迁移
 ├─ migrations/camera/             # IPC 私有 PostgreSQL Schema 迁移
-├─ scripts/                      # 初始化、检查、权限加固
+├─ scripts/                      # 初始化、检查、权限加固、离线服务与隔离浏览器回归
 ├─ docs/                         # 架构与安全说明
 ├─ app-factory.js                # 公共 Express 应用工厂
 ├─ main.js                       # 公共 BFF 与内部 Parse Server 启动入口

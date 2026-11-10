@@ -185,3 +185,15 @@ npm run test:collab-browser
 建议设置以下 Topics（按实际能力维护）：
 
 `nodejs`、`express`、`express-bff`、`bff`、`low-code`、`schema-driven`、`rbac`、`multi-tenant`、`tenant-isolation`、`organization-tree`、`parse-server`、`postgresql`、`csrf`、`http-only-cookie`、`admin-api`、`enterprise-admin`。
+
+## 通用数据与隔离界面回归
+
+- `npm run test:regression`：保留真实 Parse SDK，使用内存传输验证普通记录创建、Date 写入、日期上下界、非法筛选拒绝及租户/用户条件交集，不读取 `.env` 或写数据库；同时验证 Parse Server 加载与 GraphQL 查询兼容性。
+- `npm run test:admin-ui`：先构建并启动前端静态服务器，脚本拦截全部 API 并使用内存演示数据，验证筛选、乱序请求、保存重试、末页删除、详情、CSV、横纵布局与明暗/窄屏。`ADMIN_UI_TEST_URL` 指定前端入口，Windows 默认使用已安装 Edge，其他平台使用 Playwright Chromium；`ADMIN_UI_BROWSER_CHANNEL` 可覆盖通道。
+- `npm run test:integration`：创建独立临时 PostgreSQL 集群、Parse 和 BFF，使用随机账号验证真实持久化、登录/退出及旧 Cookie 重放拒绝、CSRF、跨租户、上传和 11 个页面加载；需先构建相邻 `vue_admin/dist`，并准备 PostgreSQL `initdb`、`pg_ctl`、`createdb` 工具（PATH 或 `ADMIN_TEST_PG_BIN`）。Windows 使用 Edge，其他平台准备 Playwright Chromium。脚本不读取现有 `.env`，不复用已有数据库；结束后停止并回收临时集群。设 `ADMIN_TEST_FULL_DOMAIN=1` 可追加隔离协同三轮及摄像头接口回归。
+
+通用日期载荷沿用 `{__type: "Date", iso: ISO8601字符串}`；日期区间使用 `greaterThanOrEqualTo` / `lessThanOrEqualTo`，服务端仅允许真实 Date 字段，继续与认证会话的租户/用户范围取交集。上述离线回归不能替代真实 PostgreSQL、CSRF、文件及会话联调。
+
+依赖覆盖将 busboy、GraphQL 工具、follow-redirects 和 UUID 固定在已修复的兼容版本范围。GraphQL 工具的 promise helper 保持 1.3.x 以支持 Node.js 20；UUID 保持 CommonJS v4 调用兼容。当前生产依赖审计为 0 漏洞；更新覆盖规则后应执行回归。完整记录见 [功能与界面质量报告](docs/ADMIN_QUALITY_REPORT.md)。
+
+主动退出会话会在服务端按已验证的企业、用户和 JWT jti 写入撤销标记，再清除 Cookie；旧 Cookie 重放会被拒绝，同一账号的其他设备保持登录。

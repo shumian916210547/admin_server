@@ -12,6 +12,7 @@ const { createSession, setSessionCookie, clearSessionCookie } = require("../../s
 const { getDashboardOverview, recordLoginActivity } = require("../../services/dashboard.service");
 const {
   registerAdminSession,
+  revokeCurrentAdminSession,
   listOnlineMemberSessions,
   forceLogoutOnlineMember,
   freezeOnlineMember,
@@ -249,7 +250,14 @@ router.post(
   "/auth/logout",
   authenticate,
   csrfGuard,
+  /**
+   * 撤销当前已认证会话后清除 Cookie，防止主动退出后的 JWT 被重放。
+   * @param {import("express").Request} req 必填，认证和 CSRF 已校验，sessionId 仅从 JWT 获取。
+   * @param {import("express").Response} res 必填，成功返回 204 与清除 Cookie；失败交给统一错误中间件。
+   * @returns {Promise<void>} 写入当前会话撤销标记，不撤销该用户的其他设备。
+   */
   asyncHandler(async (req, res) => {
+    await revokeCurrentAdminSession(req.auth);
     clearSessionCookie(res);
     res.status(204).end();
   })

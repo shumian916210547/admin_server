@@ -164,6 +164,12 @@ function hasDangerousKey(value) {
   );
 }
 
+/**
+ * 递归规范化 BFF 输入，重建 Parse Pointer 与标准 Date 值并拒绝保留键。
+ * @param {unknown} value 必填，JSON 属性或筛选值；Date 使用 {__type: "Date", iso: ISO8601}。
+ * @returns {unknown} Parse 可写入/查询的数据，不修改输入。
+ * @throws {import("../lib/http-error").HttpError} 保留键或无效 Date 编码时抛出 400。
+ */
 function normalizeValue(value) {
   if (value === undefined) return undefined;
   if (value === null || typeof value !== "object") return value;
@@ -172,6 +178,11 @@ function normalizeValue(value) {
   }
   if (Array.isArray(value)) return value.map(normalizeValue);
   if (hasDangerousKey(value)) throw badRequest("Object payload contains a reserved key");
+  if (value.__type === "Date") {
+    const date = typeof value.iso === "string" ? new Date(value.iso) : new Date(NaN);
+    if (!Number.isFinite(date.getTime())) throw badRequest("日期格式无效，请使用 ISO8601 时间。");
+    return date;
+  }
   if (value.objectId && value.className) {
     return pointer(value.className, value.objectId);
   }
@@ -470,6 +481,14 @@ async function authorizeAction(auth, className, action) {
   }
 }
 
+/**
+ * 将已授权查询的客户端筛选添加到独立 Query；company 始终忽略，日期区间只允许真实 Date 字段。
+ * @param {Parse.Query} query 必填，不包含租户授权条件的筛选 Query。
+ * @param {string} className 必填，已通过类名和操作权限校验的类名。
+ * @param {{field: string, operator: string, value: unknown}} filter 必填，字段、白名单运算符与值。
+ * @returns {Promise<void>} 只修改筛选 Query，不写数据库。
+ * @throws {import("../lib/http-error").HttpError} 字段、运算符、日期或数组长度非法时抛出 400。
+ */
 async function addFilter(query, className, filter) {
   if (!filter || typeof filter !== "object") throw badRequest("Invalid query filter");
   const { field, operator, value } = filter;
@@ -480,6 +499,11 @@ async function addFilter(query, className, filter) {
   if (field === "company") return;
 
   const definition = (await allSchemas()).get(className)?.fields?.[field];
+  /**
+   * 规范化单个筛选值，字符串 Pointer ID 按真实 Schema 补齐目标类。
+   * @param {unknown} rawValue 必填，客户端原始筛选值。
+   * @returns {unknown} Parse 筛选值；非法编码由 normalizeValue 抛出 400。
+   */
   const normalizeFilterValue = (rawValue) => {
     if (definition?.type === "Pointer" && typeof rawValue === "string") {
       return pointer(definition.targetClass, rawValue);
@@ -488,6 +512,15 @@ async function addFilter(query, className, filter) {
   };
 
   switch (operator) {
+    case "greaterThanOrEqualTo":
+    case "lessThanOrEqualTo": {
+      const date = normalizeFilterValue(value);
+      if (definition?.type !== "Date" || !(date instanceof Date)) {
+        throw badRequest("时间范围筛选仅支持日期字段和有效日期值。");
+      }
+      query[operator](field, date);
+      break;
+    }
     case "equalTo":
       query.equalTo(field, normalizeFilterValue(value));
       break;
@@ -692,6 +725,14 @@ async function getScopedRecord(auth, className, id) {
   return record;
 }
 
+/**
+ * 创建一条经 Schema、操作权限和租户 Pointer 校验的记录，服务端强制绑定会话企业。
+ * @param {object} auth 必填，authenticate 提供的可信用户、企业和管理员上下文。
+ * @param {string} classNameInput 必填，目标 Parse 类名；不能为受阻止的内部类。
+ * @param {Record<string, unknown>} attributes 必填，待创建字段，Date 使用 Parse 编码。
+ * @returns {Promise<object>} 脱敏后的创建结果；普通类使用 Parse.Object 实例，用户通过 signUp 创建。
+ * @throws {import("../lib/http-error").HttpError} 字段/凭据不合法为 400，权限或租户引用越界为 403；底层写入错误继续抛出。
+ */
 async function createRecord(auth, classNameInput, attributes) {
   const className = ensureClassName(classNameInput);
   await authorizeAction(auth, className, "insert");
@@ -699,8 +740,7 @@ async function createRecord(auth, classNameInput, attributes) {
 
   const safeAttributes = await sanitizeAttributes(className, attributes, auth, "create");
   await applyOrganizationWriteScope(auth, className, safeAttributes);
-  const Record = resolveClass(className);
-  const record = new Record();
+  const record = className === "_User" ? new Parse.User() : new Parse.Object(className);
   setAttributes(record, safeAttributes);
 
   if (className === "_User") {
